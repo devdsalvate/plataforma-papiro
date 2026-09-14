@@ -1,0 +1,19 @@
+PAPIRO MÁXIMO — CONTAS ADMINISTRATIVAS INICIAIS
+
+1) Administrador Geral
+E-mail: admin@papiromaximo.local
+Senha: PapiroADM@2026
+
+2) Gestor Papiro
+E-mail: gestor@papiromaximo.local
+Senha: GestorPM@2026
+
+3) Suporte Papiro
+E-mail: suporte@papiromaximo.local
+Senha: SuportePM@2026
+
+IMPORTANTE
+- Todas as contas acima têm perfil ADMIN.
+- Troque a senha após o primeiro login em Meu perfil > Alterar senha.
+- A recuperação de senha por link foi removida nesta versão.
+- Em uma instalação já existente, entre com um ADM atual e acesse admin/sincronizar_banco.php para criar/verificar estas contas e sincronizar as 3.049 questões.

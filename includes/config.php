@@ -6,7 +6,7 @@ declare(strict_types=1);
    ============================================================ */
 
 const APP_NAME = 'Papiro Máximo';
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '2.2.0';
 
 date_default_timezone_set('America/Sao_Paulo');
 

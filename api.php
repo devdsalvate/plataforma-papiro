@@ -2,6 +2,7 @@
 declare(strict_types=1);
 /* Papiro Máximo — API interna (fetch do JS). Todas as ações exigem login + CSRF. */
 require __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/ai.php';
 header('Content-Type: application/json; charset=utf-8');
 
 function jexit(array $data, int $code = 200): void {
@@ -17,52 +18,12 @@ if (!$user) jexit(['ok' => false, 'error' => 'Entre para continuar.'], 401);
 $uid = (int)$user['id'];
 $pdo = db();
 
-/* ---------- IA (Groq) ---------- */
+/* ---------- IA ---------- */
 function ia_format(string $t): string {
     $t = htmlspecialchars($t, ENT_QUOTES, 'UTF-8');
     $t = preg_replace('/\*\*(.+?)\*\*/s', '<b>$1</b>', $t) ?? $t;
     return nl2br($t);
 }
-function groq_chat(array $messages): ?string {
-    if (GROQ_API_KEY === '') return null;
-    $models = array_values(array_unique(array_merge([GROQ_MODEL], GROQ_FALLBACKS)));
-    foreach ($models as $model) {
-        $payload = json_encode(['model' => $model, 'messages' => $messages, 'temperature' => 0.4, 'max_tokens' => 1200]);
-        $out = false;
-        $code = 0;
-        if (function_exists('curl_init')) {
-            $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload,
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . GROQ_API_KEY],
-                CURLOPT_TIMEOUT => 40,
-            ]);
-            $out = curl_exec($ch);
-            $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            if ($out === false) return null;
-        } else {
-            $ctx = stream_context_create(['http' => [
-                'method' => 'POST', 'content' => $payload, 'timeout' => 40, 'ignore_errors' => true,
-                'header' => "Content-Type: application/json\r\nAuthorization: Bearer " . GROQ_API_KEY,
-            ]]);
-            $out = @file_get_contents('https://api.groq.com/openai/v1/chat/completions', false, $ctx);
-            if ($out === false) return null;
-            $code = 200;
-            if (isset($http_response_header[0]) && preg_match('#\s(\d{3})\s#', $http_response_header[0], $m)) $code = (int)$m[1];
-        }
-        $j = json_decode((string)$out, true);
-        if ($code >= 200 && $code < 300) {
-            return isset($j['choices'][0]['message']['content']) ? (string)$j['choices'][0]['message']['content'] : null;
-        }
-        // modelo inexistente/descontinuado? tenta o próximo; outro erro? desiste
-        $msg = strtolower((string)($j['error']['message'] ?? ''));
-        $modelErr = $code === 404 || str_contains($msg, 'does not exist') || str_contains($msg, 'decommissioned') || str_contains($msg, 'not found');
-        if (!$modelErr) return null;
-    }
-    return null;
-}
-
 switch ($action) {
 
     case 'responder': {
@@ -74,6 +35,12 @@ switch ($action) {
         $q = $st->fetch();
         if (!$q || $alt < 0 || $alt > 4) jexit(['ok' => false, 'error' => 'Questão inválida.'], 400);
         $gab = (int)$q['gabarito'];
+        if ($gab < 0 || $gab > 4) {
+            jexit([
+                'ok' => true, 'avaliavel' => false,
+                'message' => 'Esta questão veio do PDF oficial e o gabarito ainda não foi validado no banco. A prévia original continua disponível para estudo.'
+            ]);
+        }
         $correta = $alt === $gab ? 1 : 0;
         $pdo->prepare('INSERT INTO respostas (user_id, questao_id, alternativa, correta, tempo_seg, created_at) VALUES (?,?,?,?,?,?)')
             ->execute([$uid, $qid, $alt, $correta, $tempo, now_str()]);
@@ -83,8 +50,11 @@ switch ($action) {
                     ->execute([$uid, $qid, 'Errou a questão', now_str()]);
             } catch (Throwable $e) { /* já está no caderno */ }
         }
+        if (!empty($_POST['simulado']) && !empty($_SESSION['simulado_atual']['ids'])) {
+            $_SESSION['simulado_atual']['answers'][(string)$qid] = ['alt' => $alt, 'correta' => (bool)$correta];
+        }
         touch_atividade($uid);
-        jexit(['ok' => true, 'correta' => (bool)$correta, 'gabarito' => $gab, 'letra' => LETRAS[$gab], 'resolucao' => $q['resolucao']]);
+        jexit(['ok' => true, 'avaliavel' => true, 'correta' => (bool)$correta, 'gabarito' => $gab, 'letra' => LETRAS[$gab], 'resolucao' => $q['resolucao']]);
     }
 
     case 'favorito': {
@@ -175,43 +145,80 @@ switch ($action) {
         $pergunta = trim((string)($_POST['pergunta'] ?? ''));
         $qctxId = (int)($_POST['questao_id'] ?? 0);
         if (mb_strlen($pergunta) < 3) jexit(['ok' => false, 'error' => 'Pergunta muito curta.'], 400);
+        if (mb_strlen($pergunta) > 2500) $pergunta = mb_substr($pergunta, 0, 2500);
+
         $ctxQ = null;
         if ($qctxId > 0) {
             $st = $pdo->prepare('SELECT * FROM questoes WHERE id = ? AND ativo = 1');
             $st->execute([$qctxId]);
             $ctxQ = $st->fetch() ?: null;
         }
-        $demo = GROQ_API_KEY === '';
+
+        // Ações simples do produto: a IA reconhece pedidos de simulado e leva o aluno
+        // para o gerador já filtrado, sem gastar uma chamada de modelo.
+        if (!$ctxQ && preg_match('/\bsimulado\b/iu', $pergunta)) {
+            $qtd = 10;
+            if (preg_match('/\b(5|10|15|20|30|40)\b/', $pergunta, $mq)) $qtd = (int)$mq[1];
+            $mat = '';
+            foreach (MATERIAS as $m) if ($m !== 'Geral' && stripos($pergunta, $m) !== false) { $mat = $m; break; }
+            $conc = '';
+            foreach (CONCURSOS_TODOS as $c) if ($c !== 'Outro' && stripos($pergunta, $c) !== false) { $conc = $c; break; }
+            $href = url('simulados.php?' . http_build_query(['gerar'=>1,'qtd'=>$qtd,'materia'=>$mat,'concurso'=>$conc]));
+            $resposta = 'Posso montar isso direto no gerador. <a class="ai-action" href="' . e($href) . '">Abrir gerador de simulado</a>';
+            $pdo->prepare('INSERT INTO ia_perguntas (user_id, questao_id, pergunta, resposta, created_at) VALUES (?,?,?,?,?)')
+                ->execute([$uid, null, mb_substr($pergunta, 0, 1000), $resposta, now_str()]);
+            jexit(['ok'=>true,'resposta'=>$resposta,'demo'=>false,'action'=>'simulado']);
+        }
+
+        $demo = !ai_has_key();
+        $meta = null;
         if ($demo) {
-            if ($ctxQ) {
-                $resposta = '<b>📚 Resolução cadastrada:</b><br>' . $ctxQ['resolucao']
-                    . '<br><span class="muted">Modo demonstração — configure GROQ_API_KEY para respostas geradas por IA.</span>';
+            if ($ctxQ && trim((string)$ctxQ['resolucao']) !== '') {
+                $resposta = '<b>Resolução cadastrada:</b><br>' . $ctxQ['resolucao']
+                    . '<br><span class="muted">Configure uma chave Gemini, Groq ou Mistral para explicações geradas pela IA.</span>';
             } else {
-                $resposta = 'Estou em <b>modo demonstração</b> (sem chave da Groq). Abra uma <a href="' . e(url('questoes.php')) . '">questão</a> e use a resolução comentada, ou estude pelo <a href="' . e(url('guia.php')) . '">Guia de estudos</a>. 📚';
+                $resposta = 'A IA ainda não tem uma chave configurada. Você pode continuar usando o banco de questões e os simulados; para ativar o tutor, configure Gemini, Groq ou Mistral em <code>includes/config.local.php</code>.';
             }
         } else {
-            $system = 'Você é o Papiro IA, tutor de concursos militares brasileiros (EFOMM, EPCAR, EEAR, Colégio Naval, ITA). Responda em português, didático e direto, com passo a passo. Pode usar **negrito** para destacar.';
+            $system = 'Você é Papiro IA, tutor de provas militares brasileiras. Responda em português brasileiro, de forma curta, clara e prática. Para matemática/física/química, mostre os passos essenciais e a fórmula usada. Não invente dados ausentes. Quando houver uma questão oficial, diferencie claramente o que está no enunciado do que é sua explicação. Evite emojis e introduções longas.';
+            $messages = [['role'=>'system','content'=>$system]];
+
+            // Só dois turnos anteriores: mantém continuidade sem inflar tokens/latência.
+            $hst = $pdo->prepare('SELECT pergunta, resposta FROM ia_perguntas WHERE user_id = ? ORDER BY id DESC LIMIT 2');
+            $hst->execute([$uid]);
+            foreach (array_reverse($hst->fetchAll()) as $h) {
+                $messages[] = ['role'=>'user','content'=>mb_substr(strip_tags((string)$h['pergunta']),0,900)];
+                $messages[] = ['role'=>'assistant','content'=>mb_substr(strip_tags((string)$h['resposta']),0,1200)];
+            }
+
             $userMsg = $pergunta;
             if ($ctxQ) {
                 $alts = q_alternativas($ctxQ);
                 $linhas = [];
-                foreach ($alts as $i => $a) $linhas[] = LETRAS[$i] . ') ' . $a;
-                $userMsg .= "\n\nContexto da questão (" . $ctxQ['concurso'] . ' ' . $ctxQ['ano'] . ' — ' . $ctxQ['materia'] . ' / ' . $ctxQ['assunto'] . '): '
-                    . strip_tags($ctxQ['enunciado']) . ' Alternativas: ' . implode(' | ', $linhas)
-                    . ' Gabarito oficial: letra ' . LETRAS[(int)$ctxQ['gabarito']] . '. Referência: ' . strip_tags($ctxQ['resolucao']);
+                foreach ($alts as $i => $a) if (trim($a) !== '') $linhas[] = LETRAS[$i] . ') ' . mb_substr(strip_tags($a),0,500);
+                $userMsg .= "\n\nQUESTÃO OFICIAL NO CONTEXTO:\nConcurso: " . $ctxQ['concurso'] . ' · ' . $ctxQ['ano']
+                    . "\nMatéria: " . $ctxQ['materia'] . ' · ' . $ctxQ['assunto']
+                    . "\nEnunciado extraído: " . mb_substr(strip_tags((string)$ctxQ['enunciado']),0,2500)
+                    . (empty($linhas) ? '' : "\nAlternativas: " . implode(' | ', $linhas));
+                $gab = (int)$ctxQ['gabarito'];
+                if ($gab >= 0 && $gab <= 4) $userMsg .= "\nGabarito validado: " . LETRAS[$gab];
+                if (trim((string)$ctxQ['resolucao']) !== '') $userMsg .= "\nReferência cadastrada: " . mb_substr(strip_tags((string)$ctxQ['resolucao']),0,1600);
+                if (!empty($ctxQ['origem']) && (int)($ctxQ['pagina'] ?? 0) > 0) $userMsg .= "\nFonte visual: " . basename((string)$ctxQ['origem']) . ', página ' . (int)$ctxQ['pagina'] . '. Se o texto extraído estiver incompleto, avise para o aluno conferir a prévia visual.';
             }
-            $raw = groq_chat([['role' => 'system', 'content' => $system], ['role' => 'user', 'content' => $userMsg]]);
-            if ($raw === null || trim($raw) === '') {
-                $resposta = $ctxQ
-                    ? ('⚠️ A IA está indisponível agora. Segue a resolução cadastrada:<br>' . $ctxQ['resolucao'])
-                    : '⚠️ A IA está indisponível agora. Tente novamente em instantes.';
+            $messages[] = ['role'=>'user','content'=>$userMsg];
+            $r = ai_chat_fast($messages, 720);
+            $meta = ['provider'=>$r['provider'],'model'=>$r['model'],'ms'=>$r['ms']];
+            if (!$r['ok']) {
+                $resposta = $ctxQ && trim((string)$ctxQ['resolucao']) !== ''
+                    ? ('A IA não respondeu agora. Segue a resolução cadastrada:<br>' . $ctxQ['resolucao'])
+                    : 'A IA não respondeu agora. Verifique a chave/API e tente novamente.';
             } else {
-                $resposta = ia_format($raw);
+                $resposta = ia_format($r['text']);
             }
         }
         $pdo->prepare('INSERT INTO ia_perguntas (user_id, questao_id, pergunta, resposta, created_at) VALUES (?,?,?,?,?)')
             ->execute([$uid, $ctxQ ? (int)$ctxQ['id'] : null, mb_substr($pergunta, 0, 1000), $resposta, now_str()]);
-        jexit(['ok' => true, 'resposta' => $resposta, 'demo' => $demo]);
+        jexit(['ok' => true, 'resposta' => $resposta, 'demo' => $demo, 'meta' => $meta]);
     }
 
     case 'job_step': {

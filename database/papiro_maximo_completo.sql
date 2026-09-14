@@ -21,14 +21,12 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS password_resets (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  token VARCHAR(80) NOT NULL UNIQUE,
-  expira_em DATETIME NOT NULL,
-  usado TINYINT NOT NULL DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- Contas ADM iniciais (troque as senhas após o primeiro login)
+INSERT IGNORE INTO users (nome,email,senha_hash,foco,role) VALUES
+('Administrador Geral','admin@papiromaximo.local','$2y$12$LyofOO5R9m7HSxIVL9XSTujUbkWC.3qf4KVkhX8BsxE7UU46S4myi','EFOMM','admin'),
+('Gestor Papiro','gestor@papiromaximo.local','$2y$12$0qqcydOIlvLeFAwUAyDayOU8qJk3eYWB4PKmb2IeKEF985Ye.wRNK','ITA','admin'),
+('Suporte Papiro','suporte@papiromaximo.local','$2y$12$WssN2saGLmpZd5UDOrB.GOOw4NPv5OkAy4UTbXBptODq/GFDGh4We','AFA','admin');
+
 
 CREATE TABLE IF NOT EXISTS questoes (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -47,13 +45,14 @@ CREATE TABLE IF NOT EXISTS questoes (
   alt_c TEXT NOT NULL,
   alt_d TEXT NOT NULL,
   alt_e TEXT NOT NULL,
-  gabarito TINYINT NOT NULL DEFAULT 0,
+  gabarito TINYINT NOT NULL DEFAULT -1,
   resolucao TEXT NOT NULL,
   origem VARCHAR(120) NOT NULL DEFAULT '',
   ativo TINYINT NOT NULL DEFAULT 1,
   created_by INT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 CREATE TABLE IF NOT EXISTS importacoes (
   id INT AUTO_INCREMENT PRIMARY KEY,

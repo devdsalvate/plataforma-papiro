@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check($_POST['csrf'] ?? null))
     } elseif ($form === 'u_del') {
         $id = (int)$_POST['id'];
         if ($id !== (int)$user['id']) {
-            foreach (['password_resets' => 'user_id', 'respostas' => 'user_id', 'favoritos' => 'user_id', 'caderno_erros' => 'user_id', 'comentarios' => 'user_id', 'study_sessions' => 'user_id', 'trilha_progresso' => 'user_id', 'grupo_membros' => 'user_id', 'ia_perguntas' => 'user_id'] as $tb => $col) {
+            foreach (['respostas' => 'user_id', 'favoritos' => 'user_id', 'caderno_erros' => 'user_id', 'comentarios' => 'user_id', 'study_sessions' => 'user_id', 'trilha_progresso' => 'user_id', 'grupo_membros' => 'user_id', 'ia_perguntas' => 'user_id'] as $tb => $col) {
                 $pdo->prepare("DELETE FROM $tb WHERE $col = ?")->execute([$id]);
             }
             $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$id]);
@@ -137,7 +137,7 @@ $active = 'admin';
 include dirname(__DIR__) . '/includes/header.php';
 $tabs = ['dash' => '📊 Painel', 'questoes' => '📝 Questões', 'importar' => '📥 Importar PDFs', 'usuarios' => '👥 Usuários', 'comentarios' => '💬 Comentários', 'videos' => '🎥 Videoaulas', 'trilhas' => '🗺️ Trilhas', 'stats' => '📈 Estatísticas'];
 ?>
-<div class="page-head"><h1>🛠️ Administração</h1></div>
+<div class="page-head"><div><h1>Administração</h1></div><span class="spacer"></span><a class="btn btn-primary" href="<?= e(url('admin/sincronizar_banco.php')) ?>">Sincronizar acervo oficial</a></div>
 <div class="admin-tabs tabs">
   <?php foreach ($tabs as $k => $l): ?>
     <a class="tab <?= $tab === $k ? 'active' : '' ?>" href="<?= e(url('admin/index.php?tab=' . $k)) ?>"><?= e($l) ?></a>

@@ -6,6 +6,7 @@ declare(strict_types=1);
    APAGUE este arquivo após instalar em produção.
    ============================================================ */
 require __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/default_admins.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (!function_exists('e')) {
     function e($s): string { return htmlspecialchars((string)($s ?? ''), ENT_QUOTES, 'UTF-8'); }
@@ -38,7 +39,7 @@ function pm_split_sql(string $sql): array {
     return array_values(array_filter(array_map('trim', $parts ?: [])));
 }
 
-$TABLES = ['ia_perguntas','videoaulas','grupo_membros','grupos','guia_artigos','trilha_progresso','trilha_modulos','trilhas','study_sessions','comentarios','caderno_erros','favoritos','respostas','questoes','password_resets','users'];
+$TABLES = ['import_jobs','import_paginas','questao_imagens','importacoes','ia_perguntas','videoaulas','grupo_membros','grupos','guia_artigos','trilha_progresso','trilha_modulos','trilhas','study_sessions','comentarios','caderno_erros','favoritos','respostas','questoes','password_resets','users'];
 
 // ---------- POST: instalar ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -93,13 +94,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $schema = str_replace('INT AUTO_INCREMENT PRIMARY KEY', 'INTEGER PRIMARY KEY AUTOINCREMENT', $schema);
             }
             foreach (pm_split_sql($schema) as $stmt) $pdo->exec($stmt);
+            remove_password_recovery_storage($pdo);
 
-            // seed
+            // Conteúdo-base (trilhas/guia) + banco oficial empacotado.
             $seed = require __DIR__ . '/database/seed.php';
-            $stQ = $pdo->prepare('INSERT INTO questoes (slug,concurso,ano,materia,assunto,dificuldade,enunciado,alt_a,alt_b,alt_c,alt_d,alt_e,gabarito,resolucao) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-            foreach ($seed['questoes'] as $q) {
-                $stQ->execute([$q['slug'], $q['concurso'], $q['ano'], $q['materia'], $q['assunto'], $q['dificuldade'], $q['enunciado'], $q['alternativas'][0], $q['alternativas'][1], $q['alternativas'][2], $q['alternativas'][3], $q['alternativas'][4], $q['gabarito'], $q['resolucao']]);
-            }
+            require_once __DIR__ . '/includes/official_bank.php';
+            $bankResult = official_bank_sync($pdo);
             $stT = $pdo->prepare('INSERT INTO trilhas (slug,nome,icone,cor) VALUES (?,?,?,?)');
             $stM = $pdo->prepare('INSERT INTO trilha_modulos (trilha_id,titulo,ordem) VALUES (?,?,?)');
             foreach ($seed['trilhas'] as $t) {
@@ -116,11 +116,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare('INSERT INTO videoaulas (titulo,url,concurso,materia,descricao) VALUES (?,?,?,?,?)')->execute(['Colégio Naval: geometria plana essencial', 'https://www.youtube.com/', 'CN', 'Matemática', 'Teoremas e truques de construção.']);
             $pdo->prepare('INSERT INTO videoaulas (titulo,url,concurso,materia,descricao) VALUES (?,?,?,?,?)')->execute(['ITA: como estudar por provas antigas', 'https://www.youtube.com/', 'ITA', 'Geral', 'Método de engenharia reversa da banca.']);
 
-            // admin
-            $pdo->prepare('INSERT INTO users (nome,email,senha_hash,foco,role) VALUES (?,?,?,?,?)')->execute([$admin_nome, $admin_email, password_hash($admin_senha, PASSWORD_DEFAULT), 'EFOMM', 'admin']);
+            // Contas administrativas iniciais + conta definida no instalador.
+            $adminSeed = ensure_default_admins($pdo);
+            $stAdmin = $pdo->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
+            $stAdmin->execute([$admin_email]);
+            $existingAdminId = $stAdmin->fetchColumn();
+            if ($existingAdminId) {
+                $pdo->prepare("UPDATE users SET nome=?, senha_hash=?, foco='EFOMM', role='admin' WHERE id=?")
+                    ->execute([$admin_nome, password_hash($admin_senha, PASSWORD_DEFAULT), (int)$existingAdminId]);
+            } else {
+                $pdo->prepare('INSERT INTO users (nome,email,senha_hash,foco,role) VALUES (?,?,?,?,?)')
+                    ->execute([$admin_nome, $admin_email, password_hash($admin_senha, PASSWORD_DEFAULT), 'EFOMM', 'admin']);
+            }
 
             file_put_contents($lockFile, 'Instalado em ' . date('Y-m-d H:i:s') . "\n");
-            $sucesso = ['email' => $admin_email, 'n' => count($seed['questoes'])];
+            $sucesso = ['email' => $admin_email, 'n' => (int)($bankResult['total'] ?? 0)];
         } catch (Throwable $e) {
             $erro = 'Falha na instalação: ' . $e->getMessage();
         }
@@ -136,6 +146,7 @@ $instalado = is_file($lockFile) && $sucesso === null;
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Instalação · Papiro Máximo</title>
 <link rel="stylesheet" href="<?= htmlspecialchars(url('assets/css/style.css')) ?>">
+<link rel="stylesheet" href="<?= htmlspecialchars(url('assets/css/papiro-v2.css')) ?>">
 </head>
 <body class="auth-body">
 <div class="auth-card" style="max-width:640px">
@@ -152,7 +163,7 @@ $instalado = is_file($lockFile) && $sucesso === null;
   <?php if ($erro !== ''): ?><div class="flash error"><?= e($erro) ?></div><?php endif; ?>
 
   <?php if ($sucesso): ?>
-    <div class="flash success">✅ Instalação concluída com <?= (int)$sucesso['n'] ?> questões! Admin: <b><?= e($sucesso['email']) ?></b></div>
+    <div class="flash success">✅ Instalação concluída com <?= (int)$sucesso['n'] ?> questões! Admin configurado: <b><?= e($sucesso['email']) ?></b>. O pacote também inclui 3 contas ADM iniciais em <code>CONTAS-ADM.txt</code></div>
     <p>⚠️ <b>Apague o arquivo <code>install.php</code></b> antes de usar em produção.</p>
     <p><a class="btn btn-gold" href="<?= e(url('login.php')) ?>">Ir para o login →</a></p>
   <?php elseif ($instalado): ?>

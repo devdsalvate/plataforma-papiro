@@ -1,0 +1,44 @@
+QUESTÕES GERAIS - PAPIRO MÁXIMO
+================================
+
+OBJETIVO
+Este pacote consolida, por matéria, todos os PDFs organizados fornecidos pelo usuário.
+
+REGRA DE PRESERVAÇÃO
+- Nenhuma questão foi criada.
+- Nenhuma questão foi reformulada.
+- Nenhum enunciado ou alternativa foi reescrito.
+- As páginas dos materiais organizados foram inseridas diretamente nos PDFs gerais.
+- Foram adicionadas apenas páginas de capa e separadores entre concursos.
+
+ARQUIVOS
+- QUESTOES_MATEMATICA_GERAL.pdf .......... 783 questões
+- QUESTOES_PORTUGUES_GERAL.pdf ........... 726 questões
+- QUESTOES_INGLES_GERAL.pdf .............. 660 questões
+- QUESTOES_FISICA_GERAL.pdf .............. 413 questões
+- QUESTOES_QUIMICA_GERAL.pdf ............. 121 questões
+- QUESTOES_CIENCIAS_GERAL.pdf ............ 154 questões
+- QUESTOES_ESTUDOS_SOCIAIS_GERAL.pdf ..... 108 questões
+- QUESTOES_HISTORIA_GEOGRAFIA_GERAL.pdf .. 84 questões
+- REDACOES_GERAIS.pdf .................... 20 propostas
+- INDICE_GERAL.pdf
+
+TOTAL
+- 3.049 questões objetivas oficiais
+- 20 propostas de redação
+- 3.069 itens no total
+
+CONCURSOS
+- EFOMM: 400 questões objetivas
+- ITA: 393 questões objetivas + 1 redação
+- IME: 200 questões objetivas + 1 redação
+- AFA: 344 questões objetivas + 1 redação
+- EEAR: 384 questões objetivas
+- EPCAR: 192 questões objetivas + 4 redações
+- Colégio Naval: 782 questões objetivas + 7 redações
+- ESA: 354 questões objetivas + 6 redações
+
+OBSERVAÇÃO
+Os PDFs gerais possuem uma capa da matéria, seguida por separadores de concurso.
+Dentro de cada concurso, foram preservadas as páginas e separações por prova/ano
+que já existiam nos PDFs organizados anteriormente.

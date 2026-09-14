@@ -1,17 +1,17 @@
     </main>
     <footer class="footer">
-      📜 <b>Papiro Máximo</b> v<?= e(APP_VERSION) ?> · ⚓ EFOMM · ✈️ EPCAR · 🛩️ EEAR · 🧭 Colégio Naval · 🚀 ITA
+      <b>Papiro Máximo</b> v<?= e(APP_VERSION) ?> <span>Banco de questões e preparação militar</span>
     </footer>
-  </div><!-- /main-col -->
+  </div>
 
   <nav class="bottomnav">
-    <a href="<?= e(url('index.php')) ?>" class="<?= ($active ?? '') === 'inicio' ? 'active' : '' ?>">🏠<small>Início</small></a>
-    <a href="<?= e(url('questoes.php')) ?>" class="<?= ($active ?? '') === 'questoes' ? 'active' : '' ?>">📝<small>Questões</small></a>
-    <a href="<?= e(url('trilhas.php')) ?>" class="<?= ($active ?? '') === 'trilhas' ? 'active' : '' ?>">🗺️<small>Trilhas</small></a>
-    <a href="<?= e(url('ranking.php')) ?>" class="<?= ($active ?? '') === 'ranking' ? 'active' : '' ?>">🏆<small>Ranking</small></a>
-    <a href="<?= e(url($user ? 'perfil.php' : 'login.php')) ?>" class="<?= ($active ?? '') === 'perfil' ? 'active' : '' ?>">👤<small>Perfil</small></a>
+    <a href="<?= e(url('index.php')) ?>" class="<?= ($active ?? '') === 'inicio' ? 'active' : '' ?>"><span>IN</span><small>Início</small></a>
+    <a href="<?= e(url('questoes.php')) ?>" class="<?= ($active ?? '') === 'questoes' ? 'active' : '' ?>"><span>Q</span><small>Questões</small></a>
+    <a href="<?= e(url('simulados.php')) ?>" class="<?= ($active ?? '') === 'simulados' ? 'active' : '' ?>"><span>SIM</span><small>Simulado</small></a>
+    <a href="<?= e(url('ia.php')) ?>" class="<?= ($active ?? '') === 'ia' ? 'active' : '' ?>"><span>IA</span><small>Papiro IA</small></a>
+    <a href="<?= e(url($user ? 'perfil.php' : 'login.php')) ?>" class="<?= ($active ?? '') === 'perfil' ? 'active' : '' ?>"><span>EU</span><small>Perfil</small></a>
   </nav>
-</div><!-- /shell -->
+</div>
 
 <script>
 window.PM = {

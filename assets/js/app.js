@@ -10,9 +10,21 @@
     data.csrf = PM.csrf;
     var body = new FormData();
     Object.keys(data).forEach(function (k) { body.append(k, data[k]); });
-    return fetch(apiUrl(), { method: 'POST', body: body, credentials: 'same-origin' })
-      .then(function (r) { return r.json(); });
+    var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function(){ ctl.abort(); }, action === 'ia' ? 26000 : 18000) : null;
+    return fetch(apiUrl(), { method: 'POST', body: body, credentials: 'same-origin', signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { return r.json(); })
+      .catch(function (e) { return { ok:false, error: e && e.name === 'AbortError' ? 'A resposta demorou demais. Tente novamente.' : 'Falha de conexão.' }; })
+      .finally(function(){ if (timer) clearTimeout(timer); });
   }
+
+  /* ---- tema claro/escuro ---- */
+  var themeBtn = document.getElementById('themeToggle');
+  var themeLabel = document.getElementById('themeLabel');
+  function currentTheme(){ return document.documentElement.getAttribute('data-theme') || 'light'; }
+  function renderTheme(){ if(themeLabel) themeLabel.textContent = currentTheme() === 'dark' ? 'Escuro' : 'Claro'; }
+  if(themeBtn){ themeBtn.addEventListener('click', function(){ var t=currentTheme()==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); try{localStorage.setItem('pm_theme',t);}catch(e){} renderTheme(); }); }
+  renderTheme();
 
   /* ---- menu mobile / flashes ---- */
   var menuBtn = document.getElementById('menuBtn');
@@ -165,8 +177,14 @@
       if (sel === null || answered) return;
       btnResp.disabled = true;
       btnResp.innerHTML = '<span class="spin">⏳</span> Corrigindo...';
-      api('responder', { qid: qid, alt: sel, tempo: Math.floor((Date.now() - t0q) / 1000) }).then(function (res) {
+      api('responder', { qid: qid, alt: sel, tempo: Math.floor((Date.now() - t0q) / 1000), simulado: qBox.getAttribute('data-simulado') || '' }).then(function (res) {
         if (!res.ok) { alert(res.error || 'Erro.'); btnResp.disabled = false; btnResp.textContent = 'Responder'; return; }
+        if (res.avaliavel === false) {
+          var fb0 = document.getElementById('feedback');
+          if (fb0) { fb0.className='feedback'; fb0.textContent = res.message || 'Gabarito ainda não validado.'; }
+          btnResp.disabled = false; btnResp.textContent = 'Responder';
+          return;
+        }
         answered = true;
         var fb = document.getElementById('feedback');
         qBox.querySelectorAll('.alt').forEach(function (x) {
@@ -190,10 +208,10 @@
     if (btnIa) btnIa.addEventListener('click', function () {
       var box = document.getElementById('iaQuestaoBox');
       btnIa.disabled = true;
-      if (box) { box.style.display = ''; box.innerHTML = '🤖 <i>Papiro IA pensando...</i>'; }
+      if (box) { box.style.display = ''; box.innerHTML = '<i>Analisando a questão...</i>'; }
       api('ia', { questao_id: qid, pergunta: 'Explique esta questão passo a passo.' }).then(function (res) {
         btnIa.disabled = false;
-        if (box) box.innerHTML = res.ok ? ('<b>🤖 Papiro IA:</b><br>' + res.resposta) : ('⚠️ ' + (res.error || 'Erro.'));
+        if (box) box.innerHTML = res.ok ? ('<b>Papiro IA</b><br>' + res.resposta) : (res.error || 'Erro.');
       });
     });
   }
@@ -290,12 +308,22 @@
     var u = document.createElement('div');
     u.className = 'msg user'; u.textContent = txt; log.appendChild(u);
     var w = document.createElement('div');
-    w.className = 'msg ia'; w.innerHTML = '<i>🤖 pensando...</i>'; log.appendChild(w);
+    w.className = 'msg ia'; w.innerHTML = '<i>Analisando...</i>'; log.appendChild(w);
     log.scrollTop = log.scrollHeight;
     inp.value = '';
     api('ia', { pergunta: txt, questao_id: iaForm.getAttribute('data-qid') || '' }).then(function (res) {
-      w.innerHTML = res.ok ? res.resposta : ('⚠️ ' + (res.error || 'Erro.'));
+      w.innerHTML = res.ok ? res.resposta : (res.error || 'Erro.');
+      if (res.ok && res.meta && res.meta.ms) { var sm=document.createElement('div'); sm.className='chat-status'; sm.textContent='Resposta em '+(res.meta.ms/1000).toFixed(1)+'s · '+(res.meta.provider||'IA'); w.appendChild(sm); }
       log.scrollTop = log.scrollHeight;
+    });
+  });
+
+
+  /* ---- atalhos de prompt do chat ---- */
+  document.querySelectorAll('[data-ia-prompt]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var inp=document.getElementById('iaInput'); if(!inp)return;
+      inp.value=btn.getAttribute('data-ia-prompt')||''; inp.focus();
     });
   });
 

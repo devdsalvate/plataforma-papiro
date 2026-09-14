@@ -1,0 +1,48 @@
+PAPIRO MÁXIMO 2.1 — PACOTE INTEGRADO
+=====================================
+
+O pacote já contém:
+- tema claro: branco, cinza, azul e azul-escuro;
+- tema escuro: preto, cinza-escuro, vermelho e laranja;
+- visual do banco de questões simplificado;
+- alternância de tema persistente;
+- Papiro IA com rota rápida e fallback entre provedores;
+- gerador de simulados;
+- 3.049 registros oficiais do pacote de questões;
+- PDFs originais dentro da própria plataforma;
+- prévia visual via PDF.js, preservando gráficos, fórmulas e figuras;
+- tela de sincronização para atualizar um banco já existente.
+
+INSTALAÇÃO NOVA NO XAMPP
+1. Extraia a pasta "plataforma-papiro" em C:\xampp\htdocs\
+2. Inicie Apache e MySQL no XAMPP.
+3. Abra: http://localhost/plataforma-papiro/install.php
+4. Crie o administrador e, se quiser, informe uma chave de IA.
+5. Depois entre normalmente na plataforma.
+
+SE VOCÊ JÁ USAVA O PAPIRO
+1. Faça uma cópia da sua pasta antiga por segurança.
+2. Substitua os arquivos pelo conteúdo deste pacote.
+3. Não é necessário apagar seu banco MySQL.
+4. Entre como administrador.
+5. Abra Administração > Sincronizar acervo oficial.
+6. Clique em "Sincronizar agora". Isso não apaga usuários nem progresso.
+
+IA
+- O chat prioriza um modelo rápido e usa fallback quando outro provedor falha.
+- Configure as chaves pelo install.php numa instalação nova.
+- Em instalação existente, você pode manter/copiar seu includes/config.local.php anterior.
+
+ACERVO
+O banco possui 3.049 questões objetivas oficiais segundo o índice enviado.
+Quando a extração textual de um PDF escaneado não é confiável, o registro é tratado
+como "questão oficial visual": a página original continua visível, mas a plataforma
+não inventa gabarito ou alternativas. Esses registros podem ser estudados pela prévia
+e enviados como contexto ao Papiro IA.
+
+
+ATUALIZAÇÃO 2.2
+- Recuperação de senha por link local removida.
+- 3 contas ADM iniciais: consulte CONTAS-ADM.txt.
+- Página Questões sincroniza o acervo oficial automaticamente se ele ainda não estiver carregado.
+- Os prints das questões são renderizados diretamente do PDF original dentro de cada card.

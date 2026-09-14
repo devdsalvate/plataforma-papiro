@@ -1,0 +1,31 @@
+PAPIRO MÁXIMO 2.2 — ALTERAÇÕES DESTA VERSÃO
+
+1. CONTAS ADM PRONTAS
+- admin@papiromaximo.local / PapiroADM@2026
+- gestor@papiromaximo.local / GestorPM@2026
+- suporte@papiromaximo.local / SuportePM@2026
+
+As três contas recebem perfil ADMIN. Troque as senhas depois do primeiro login em Meu perfil > Alterar senha.
+
+2. RECUPERAÇÃO DE SENHA REMOVIDA
+- O link "Esqueceu a senha?" foi retirado do login.
+- recuperar.php foi removido.
+- A tabela password_resets não é mais criada e é removida nas rotinas de atualização.
+- A troca de senha continua disponível em Meu perfil > Alterar senha.
+
+3. QUESTÕES OFICIAIS NA PRÓPRIA PÁGINA
+- O acervo oficial de 3.049 questões é sincronizado automaticamente quando necessário.
+- A página Questões mostra o print/recorte do PDF original dentro do card.
+- As 3 primeiras prévias são carregadas imediatamente; as demais usam carregamento progressivo para não deixar a página pesada.
+- Há botão "Abrir PDF" para conferir a página original completa.
+
+4. ATUALIZAÇÃO DE UMA INSTALAÇÃO JÁ EXISTENTE
+- Preserve includes/config.local.php e o seu banco MySQL.
+- Copie/substitua os arquivos desta versão sobre a pasta atual.
+- Abra questoes.php uma vez. O acervo oficial e as contas ADM serão verificados automaticamente.
+- Alternativamente, um ADM pode abrir admin/sincronizar_banco.php.
+
+5. INSTALAÇÃO NOVA
+- Coloque a pasta em C:\xampp\htdocs\plataforma-papiro
+- Inicie Apache e MySQL no XAMPP.
+- Abra http://localhost/plataforma-papiro/install.php

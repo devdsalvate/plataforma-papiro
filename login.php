@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Entrar · <?= e(APP_NAME) ?></title>
 <link rel="stylesheet" href="<?= e(url('assets/css/style.css')) ?>">
+<link rel="stylesheet" href="<?= e(url('assets/css/papiro-v2.css')) ?>">
 </head>
 <body class="auth-body">
 <div class="auth-card">
@@ -37,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <label>Senha <input type="password" name="senha" required></label>
     <button class="btn btn-gold btn-block" type="submit">Entrar →</button>
   </form>
-  <p class="muted">Esqueceu a senha? <a href="<?= e(url('recuperar.php')) ?>">Recuperar</a></p>
+  <p class="muted auth-help">Para trocar sua senha, entre na conta e use <b>Meu perfil → Alterar senha</b>.</p>
   <p class="muted">Ainda não tem conta? <a href="<?= e(url('cadastro.php')) ?>">Criar conta grátis</a></p>
 </div>
 </body>

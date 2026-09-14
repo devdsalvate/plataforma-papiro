@@ -24,7 +24,7 @@ const CONCURSO_NOMES = [
     'ITA' => 'ITA', 'ESA' => 'ESA', 'EsPCEx' => 'EsPCEx', 'AFA' => 'AFA',
     'IME' => 'IME', 'EEAM' => 'EEAM', 'CFN' => 'CFN', 'Outro' => 'Outros',
 ];
-const MATERIAS = ['Matemática', 'Física', 'Química', 'Português', 'Inglês', 'Ciências', 'Geral'];
+const MATERIAS = ['Matemática', 'Física', 'Química', 'Português', 'Inglês', 'Ciências', 'Estudos Sociais', 'História/Geografia', 'Geral'];
 const DIFICULDADES = ['Fácil', 'Médio', 'Difícil'];
 const LETRAS = ['A', 'B', 'C', 'D', 'E'];
 
