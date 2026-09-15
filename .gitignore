@@ -1,0 +1,12 @@
+includes/config.local.php
+database/installed.lock
+database/papiro.sqlite
+
+CONTAS-ADM.txt
+
+*.log
+.env
+.env.*
+
+.DS_Store
+Thumbs.db

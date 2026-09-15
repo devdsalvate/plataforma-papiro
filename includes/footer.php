@@ -7,9 +7,9 @@
   <nav class="bottomnav">
     <a href="<?= e(url('index.php')) ?>" class="<?= ($active ?? '') === 'inicio' ? 'active' : '' ?>"><span>IN</span><small>Início</small></a>
     <a href="<?= e(url('questoes.php')) ?>" class="<?= ($active ?? '') === 'questoes' ? 'active' : '' ?>"><span>Q</span><small>Questões</small></a>
-    <a href="<?= e(url('simulados.php')) ?>" class="<?= ($active ?? '') === 'simulados' ? 'active' : '' ?>"><span>SIM</span><small>Simulado</small></a>
-    <a href="<?= e(url('ia.php')) ?>" class="<?= ($active ?? '') === 'ia' ? 'active' : '' ?>"><span>IA</span><small>Papiro IA</small></a>
-    <a href="<?= e(url($user ? 'perfil.php' : 'login.php')) ?>" class="<?= ($active ?? '') === 'perfil' ? 'active' : '' ?>"><span>EU</span><small>Perfil</small></a>
+    <a href="<?= e(url('simulados.php')) ?>" class="<?= ($active ?? '') === 'simulados' ? 'active' : '' ?>"><span>SIM</span><small>Simulados</small></a>
+    <a href="<?= e(url('trilhas.php')) ?>" class="<?= ($active ?? '') === 'trilhas' ? 'active' : '' ?>"><span>TR</span><small>Trilhas</small></a>
+    <a href="<?= e(url('caderno.php')) ?>" class="<?= ($active ?? '') === 'caderno' ? 'active' : '' ?>"><span>CE</span><small>Caderno</small></a>
   </nav>
 </div>
 
@@ -20,7 +20,7 @@ window.PM = {
   uid: <?= $user ? (int)$user['id'] : 0 ?>
 };
 </script>
-<script src="<?= e(url('assets/js/app.js')) ?>"></script>
+<script src="<?= e(url('assets/js/app.js?v=' . rawurlencode(APP_VERSION))) ?>"></script>
 <?= $extra_js ?? '' ?>
 </body>
 </html>

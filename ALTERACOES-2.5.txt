@@ -1,0 +1,103 @@
+PAPIRO MÁXIMO 2.5 — ESTUDO ADAPTATIVO
+======================================
+
+Esta versão evolui o Papiro de um banco de questões para uma plataforma de estudo adaptativa.
+
+PRINCIPAIS UPGRADES
+-------------------
+1. PLANO DIÁRIO AUTOMÁTICO
+- Nova página Plano diário.
+- O sistema cria tarefas do dia usando matéria mais fraca, revisões vencidas, trilha e metas.
+- Itens podem ser concluídos sem sair da página.
+- Botão para recalcular o plano do dia.
+
+2. METAS SEMANAIS
+- Metas configuráveis de horas, questões e simulados.
+- Progresso semanal aparece no plano e na Home.
+
+3. MAPA DE DOMÍNIO
+- Pontuação por matéria combinando precisão e volume de prática.
+- Status: Começando, Reforçar, Em evolução, Forte e Dominado.
+- Novo gráfico radar na Home.
+- Identificação automática das matérias/assuntos que mais precisam de atenção.
+
+4. SIMULADOS 2.5
+- Modo Personalizado: filtros escolhidos pelo aluno.
+- Modo Inteligente: prioriza fraquezas e questões ainda não respondidas.
+- Modo Prova: distribui questões entre matérias disponíveis do concurso.
+- Execuções persistentes: o simulado continua existindo no banco.
+- Histórico de simulados.
+- Resultado final com desempenho por matéria e revisão das questões.
+
+5. RESOLUÇÃO EM MODO FOCO
+- Uma questão por vez.
+- Cronômetro por questão.
+- Atalhos A–E e Enter.
+- Alternativas maiores e mais legíveis.
+- Indicador de confiança: Certeza, Dúvida ou Chute.
+- Navegação e paleta de questões durante simulados.
+- Feedback, resolução e explicação alternativa pela Papiro IA.
+
+6. CADERNO DE ERROS AVANÇADO
+- Classificação da causa do erro: conteúdo, cálculo, interpretação, distração, tempo ou chute.
+- Filtros por agenda e tipo de erro.
+- Próxima revisão visível.
+- Contador de revisões.
+- Campo de regra/insight pessoal mantido.
+
+7. REVISÃO ESPAÇADA
+- Erros entram numa agenda automática de revisão.
+- Intervalos progressivos: 1, 3, 7, 15, 30 e 60 dias.
+- A Home mostra quantas revisões estão vencidas.
+
+8. PAPIRO IA COMO TUTOR + COACH
+- A IA recebe contexto real do aluno: precisão, volume semanal, matéria mais fraca, mapa de domínio e revisões.
+- Novos atalhos para analisar pontos fracos, montar plano de estudo e identificar padrões de erro.
+- Mantida a correção assistida por IA para questões sem gabarito oficial, sempre com confiança mínima.
+
+9. QUALIDADE DO BANCO
+- Usuário pode reportar enunciado, alternativas, gabarito, imagem, duplicidade ou outro problema.
+- Painel Admin > Qualidade mostra denúncias abertas e indicadores do acervo.
+- Gabarito oficial/manual continua tendo prioridade sobre inferência da IA.
+
+10. DASHBOARD MAIS ANALÍTICO
+- Gráficos existentes mantidos.
+- Novo radar de domínio.
+- Metas semanais.
+- Plano de hoje.
+- Alertas de revisão.
+- Sugestões de foco baseadas em desempenho real.
+
+11. TRILHAS E GUIA
+- Trilha Base Forte continua aprofundada.
+- Atalho para diagnóstico de Matemática.
+- Novos capítulos do Guia explicando mapa de domínio e revisão espaçada.
+
+12. MELHORIAS TÉCNICAS
+- Migrações automáticas para instalações 2.4.
+- Novas tabelas de metas, plano diário, simulados, respostas de simulados e denúncias.
+- Novos índices para consultas frequentes.
+- Service Worker atualizado com preferência pela rede para reduzir cache antigo de CSS/JS.
+- .gitignore protege includes/config.local.php, banco SQLite e logs.
+- APP_VERSION 2.5.0.
+
+ATUALIZAÇÃO A PARTIR DA 2.4
+---------------------------
+1. Faça backup da pasta atual e do banco MySQL.
+2. Preserve includes/config.local.php (ele não vai no ZIP por segurança).
+3. Substitua os arquivos pela pasta plataforma-papiro deste pacote.
+4. NÃO apague o banco MySQL e NÃO execute uma instalação nova.
+5. Abra a plataforma normalmente. As novas tabelas/colunas são criadas automaticamente.
+6. Se o navegador mostrar arquivos antigos, use Ctrl+F5 uma vez.
+
+INSTALAÇÃO NOVA
+---------------
+Use install.php. O schema desta versão já contém todas as tabelas 2.5.
+
+ACERVO
+------
+O pacote preserva os 3.049 registros do acervo 2.4. As questões sem transcrição textual confiável continuam preservadas no banco para revisão futura, sem voltar a substituir enunciado textual por uma página inteira fotografada.
+
+SEGURANÇA
+---------
+Não publique includes/config.local.php no GitHub. O arquivo .gitignore desta versão já o ignora.

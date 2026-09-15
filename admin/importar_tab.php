@@ -143,7 +143,7 @@ foreach ($pdo->query('SELECT * FROM importacoes ORDER BY id DESC')->fetchAll() a
     <li>Questões sem página/recorte? Use o botão <b>📍</b> do arquivo: re-mapeia páginas e recortes <b>sem gastar IA</b>.</li>
     <li>Elas entram como <b>rascunho</b> — revise em <a href="<?= e(url('admin/index.php?tab=questoes')) ?>">Questões</a> e depois <b>✅ Ative</b>.</li>
   </ol>
-  <?php if (GEMINI_API_KEY === '' && MISTRAL_API_KEY === '' && GROQ_API_KEY === ''): ?>
+  <?php if (GEMINI_API_KEY === '' && GROQ_API_KEY === ''): ?>
     <div class="flash info">⚠️ Sem chave de IA: dá para enviar PDFs e ver o texto, mas o processamento fica indisponível. Configure uma chave em <code>includes/config.local.php</code> (veja o README).</div>
   <?php endif; ?>
   <?php $pb = prints_backend(); ?>

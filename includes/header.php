@@ -1,5 +1,5 @@
 <?php
-/* Papiro Máximo — layout v2. Variáveis: $title, $active */
+/* Papiro Máximo — layout v2.5.1 */
 $user = current_user();
 $nav = [
     ['inicio', 'Início', 'IN', 'index.php'],
@@ -8,10 +8,7 @@ $nav = [
     ['trilhas', 'Trilhas', 'TR', 'trilhas.php'],
     ['guia', 'Guia', 'G', 'guia.php'],
     ['ranking', 'Ranking', 'R', 'ranking.php'],
-    ['caderno', 'Caderno', 'C', 'caderno.php'],
-    ['favoritos', 'Favoritos', 'F', 'favoritos.php'],
-    ['ia', 'Papiro IA', 'IA', 'ia.php'],
-    ['videos', 'Videoaulas', 'V', 'videoaulas.php'],
+    ['caderno', 'Caderno de erros', 'CE', 'caderno.php'],
 ];
 ?>
 <!DOCTYPE html>
@@ -23,17 +20,17 @@ $nav = [
 <script>
 (function(){try{var t=localStorage.getItem('pm_theme')||'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 </script>
-<link rel="stylesheet" href="<?= e(url('assets/css/style.css')) ?>">
-<link rel="stylesheet" href="<?= e(url('assets/css/papiro-v2.css')) ?>">
+<link rel="stylesheet" href="<?= e(url('assets/css/style.css?v=' . rawurlencode(APP_VERSION))) ?>">
+<link rel="stylesheet" href="<?= e(url('assets/css/papiro-v2.css?v=' . rawurlencode(APP_VERSION))) ?>">
 <link rel="manifest" href="<?= e(url('manifest.json')) ?>">
-<link rel="icon" href="<?= e(url('icons/icon.svg')) ?>">
+<link rel="icon" href="<?= e(url('icons/papiro-logo.svg')) ?>">
 <meta name="theme-color" content="#103b72">
 </head>
 <body>
 <div class="shell">
   <aside class="sidebar" id="sidebar">
     <a class="brand" href="<?= e(url('index.php')) ?>">
-      <span class="brand-mark">PM</span>
+      <img class="brand-logo" src="<?= e(url('icons/papiro-logo.svg')) ?>" alt="Papiro Máximo">
       <span class="brand-name">Papiro <b>Máximo</b><small>estudo militar</small></span>
     </a>
     <nav class="nav">
@@ -47,7 +44,10 @@ $nav = [
     <div class="side-foot">
       <?php if ($user): ?>
         <a class="user-chip" href="<?= e(url('perfil.php')) ?>"><span class="mini-avatar"><?= e(mb_strtoupper(mb_substr($user['nome'],0,1))) ?></span><span><?= e($user['nome']) ?><small><?= (int)$user['ofensiva'] ?> dias de ofensiva</small></span></a>
-        <a class="logout" href="<?= e(url('logout.php')) ?>">Sair</a>
+        <div class="side-foot-actions">
+          <a class="btn btn-ghost btn-block btn-small" href="<?= e(url('ia.php')) ?>">Tutor IA</a>
+          <a class="logout" href="<?= e(url('logout.php')) ?>">Sair</a>
+        </div>
       <?php else: ?>
         <a class="btn btn-primary btn-block" href="<?= e(url('login.php')) ?>">Entrar</a>
         <a class="btn btn-ghost btn-block" href="<?= e(url('cadastro.php')) ?>">Criar conta</a>

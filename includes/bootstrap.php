@@ -6,12 +6,14 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/runtime_schema.php';
 
 // Se o banco ainda não foi instalado, manda para o instalador.
 $__self = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
 if ($__self !== 'install.php') {
     try {
         db()->query('SELECT id FROM users LIMIT 1');
+        papiro_ensure_runtime_schema(db());
     } catch (Throwable $e) {
         if ($__self === 'api.php') {
             header('Content-Type: application/json; charset=utf-8');

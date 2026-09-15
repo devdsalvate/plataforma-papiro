@@ -4,6 +4,7 @@ require dirname(__DIR__) . '/includes/bootstrap.php';
 require_once dirname(__DIR__) . '/includes/import_lib.php';
 require_once dirname(__DIR__) . '/includes/official_bank.php';
 require_once dirname(__DIR__) . '/includes/default_admins.php';
+require_once dirname(__DIR__) . '/includes/learning_content.php';
 $user = require_admin();
 $pdo = db();
 import_migrate();
@@ -14,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             remove_password_recovery_storage($pdo);
             $result = official_bank_sync($pdo);
+            $result['learning'] = ensure_learning_content($pdo);
             $result['admins'] = ensure_default_admins($pdo);
         }
         catch (Throwable $e) { $erro = $e->getMessage(); }
@@ -24,9 +26,9 @@ try { $nQ = (int)$pdo->query("SELECT COUNT(*) FROM questoes WHERE ativo = 1")->f
 $title='Sincronizar acervo'; $active='admin';
 include dirname(__DIR__) . '/includes/header.php';
 ?>
-<div class="page-head"><div><h1>Sincronizar acervo oficial</h1><div class="muted">Importa ou atualiza as 3.049 questões do pacote sem apagar usuários, respostas ou progresso.</div></div></div>
+<div class="page-head"><div><h1>Sincronizar acervo oficial</h1><div class="muted">Atualiza o acervo, enunciados, regras de prévia e trilhas sem apagar usuários, respostas ou progresso.</div></div></div>
 <?php if($erro!==''): ?><div class="flash error"><?= e($erro) ?></div><?php endif; ?>
-<?php if($result): ?><div class="flash success">Acervo sincronizado: <?= (int)$result['total'] ?> registros · <?= (int)$result['inserted'] ?> novos · <?= (int)$result['updated'] ?> atualizados. Contas ADM verificadas: <?= (int)($result['admins']['total'] ?? 0) ?>.</div><?php endif; ?>
+<?php if($result): ?><div class="flash success">Acervo sincronizado: <?= (int)$result['total'] ?> registros · <?= (int)$result['inserted'] ?> novos · <?= (int)$result['updated'] ?> atualizados. Trilhas: <?= (int)($result['learning']['trilhas'] ?? 0) ?> · módulos: <?= (int)($result['learning']['modulos'] ?? 0) ?>. Contas internas verificadas: <?= (int)($result['admins']['total'] ?? 0) ?>.</div><?php endif; ?>
 <div class="card" style="max-width:760px">
   <h2>Banco atual</h2>
   <p><b><?= number_format($nQ,0,',','.') ?></b> questões ativas no banco.</p>

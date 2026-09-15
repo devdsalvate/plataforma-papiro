@@ -1,138 +1,34 @@
-# 📜 Papiro Máximo
+# Papiro Máximo 2.5
 
-Plataforma web de preparação para concursos e escolas militares, com foco principal em **EFOMM, EPCAR, EEAR, Colégio Naval e ITA**.
+Plataforma PHP/MySQL para preparação de concursos militares, com banco oficial de questões, simulados, trilhas, caderno de erros, revisão espaçada, metas, planejamento adaptativo, métricas de estudo e Papiro IA.
 
-O objetivo do projeto é reunir, em um único ambiente, **banco de questões, trilhas de aprendizagem, controle de horas estudadas, ranking entre alunos, comentários, favoritos, caderno de erros, estatísticas de desempenho e resoluções assistidas por IA**.
+## Destaques da versão 2.5
 
-A plataforma será construída com **HTML, CSS, JavaScript, PHP e MySQL/MariaDB**, com hospedagem inicial no **InfinityFree**.
+- **Plano diário adaptativo** criado a partir dos pontos fracos, revisões, trilha e metas do aluno.
+- **Metas semanais** de horas, questões e simulados.
+- **Mapa de domínio por matéria** com gráfico radar e identificação automática de fraquezas.
+- **Simulados Personalizado, Inteligente e Prova**, com histórico, progresso persistente e relatório final.
+- **Modo foco para resolver questões**, com cronômetro, atalhos A–E, confiança da resposta e navegação do simulado.
+- **Caderno de erros avançado**, com causa do erro e agenda de revisão espaçada.
+- **Revisão espaçada** em intervalos progressivos de 1, 3, 7, 15, 30 e 60 dias.
+- **Papiro IA Tutor + Coach**, contextualizada com desempenho real, domínio, metas e revisões do aluno.
+- **Qualidade do banco**, com denúncia de questões e painel administrativo de revisão.
+- Dashboard com evolução, distribuição por matéria, precisão, metas, radar de domínio e plano do dia.
+- Questões textuais exibidas como HTML/texto; imagens ficam apenas como apoio visual necessário.
+- Mantido o acervo de 3.049 registros do material fornecido.
+- Contas administrativas não participam do ranking.
+- Tema claro/escuro e proteção de configurações locais via `.gitignore`.
 
----
+## Instalação
 
-# 🎯 Objetivo
+Leia `PRIMEIROS-PASSOS.txt`. Em XAMPP, a pasta deve ficar em `C:\xampp\htdocs\plataforma-papiro`.
 
-O **Papiro Máximo** não será apenas um banco de questões.
+## Atualização da 2.4
 
-A ideia é criar uma plataforma em que o estudante consiga:
+Preserve `includes/config.local.php`, faça backup do banco e substitua apenas os arquivos da aplicação. **Não apague o banco MySQL.** As novas colunas/tabelas são criadas automaticamente no primeiro acesso.
 
-- saber o que estudar;
-- entender como estudar;
-- organizar sua preparação por concurso;
-- resolver questões;
-- acompanhar seu desempenho;
-- registrar horas de estudo;
-- manter uma ofensiva de estudos;
-- comparar sua constância com outros alunos;
-- participar de grupos;
-- revisar erros;
-- favoritar questões;
-- comentar e publicar resoluções;
-- acessar videoaulas;
-- receber explicações geradas por IA.
+## Segurança
 
-O foco inicial será em aproximadamente **30 usuários**, mantendo uma arquitetura simples, organizada e preparada para crescimento.
+Chaves de IA, senha do MySQL e outras configurações privadas devem ficar em `includes/config.local.php`. Esse arquivo está no `.gitignore` e não deve ser commitado.
 
----
-
-# 🪖 Concursos principais
-
-Os cinco concursos prioritários da plataforma serão:
-
-- ⚓ **EFOMM**
-- ✈️ **EPCAR**
-- ✈️ **EEAR**
-- ⚓ **Colégio Naval**
-- ⚙️ **ITA**
-
-Esses concursos terão:
-
-- maior quantidade de questões;
-- trilhas próprias;
-- filtros dedicados;
-- conteúdos recomendados;
-- estatísticas específicas;
-- simulados futuramente.
-
-Outros concursos também poderão existir:
-
-- ESA
-- EsPCEx
-- AFA
-- IME
-- EEAM
-- CFN
-- outros concursos militares.
-
----
-
-# 🧱 Tecnologias
-
-## Front-end
-
-- HTML5
-- CSS3
-- JavaScript
-
-## Back-end
-
-- PHP 8+
-
-## Banco de dados
-
-- MySQL / MariaDB
-- PDO para acesso ao banco
-
-## Autenticação
-
-- PHP Sessions
-- `password_hash()`
-- `password_verify()`
-
-## Inteligência Artificial
-
-- Groq API
-- Comunicação feita pelo PHP
-- API Key protegida no servidor
-
-## Hospedagem
-
-- InfinityFree
-
-## Desenvolvimento local
-
-Recomendado:
-
-- XAMPP
-- Apache
-- MySQL
-- phpMyAdmin
-- VS Code
-
----
-
-# 🏗️ Arquitetura
-
-```text
-NAVEGADOR
-│
-├── HTML
-├── CSS
-└── JavaScript
-      │
-      │ fetch()
-      ▼
-PHP / API INTERNA
-      │
-      ├── autenticação
-      ├── questões
-      ├── comentários
-      ├── favoritos
-      ├── sessões de estudo
-      ├── ranking
-      ├── grupos
-      ├── trilhas
-      └── IA
-      │
-      ▼
-MySQL / MariaDB
-      │
-      └── Groq API
+Consulte `ALTERACOES-2.5.txt` para o changelog completo.

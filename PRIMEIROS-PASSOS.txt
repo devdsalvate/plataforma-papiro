@@ -1,48 +1,51 @@
-PAPIRO MÁXIMO 2.1 — PACOTE INTEGRADO
-=====================================
+PAPIRO MÁXIMO 2.5 — ESTUDO ADAPTATIVO
+======================================
 
 O pacote já contém:
-- tema claro: branco, cinza, azul e azul-escuro;
-- tema escuro: preto, cinza-escuro, vermelho e laranja;
-- visual do banco de questões simplificado;
-- alternância de tema persistente;
-- Papiro IA com rota rápida e fallback entre provedores;
-- gerador de simulados;
-- 3.049 registros oficiais do pacote de questões;
+- tema claro e escuro;
+- banco com 3.049 registros oficiais do material fornecido;
+- questões textuais e apoio visual apenas quando necessário;
+- resolução em modo foco com cronômetro, A–E, confiança e feedback;
+- simulados personalizados, inteligentes e modo prova;
+- histórico e resultado de simulados;
+- Plano Diário automático;
+- metas semanais de horas, questões e simulados;
+- mapa de domínio e radar por matéria;
+- revisão espaçada e caderno de erros com causa do erro;
+- trilhas aprofundadas e Base Forte em Matemática;
+- guia de estudos detalhado;
+- Papiro IA como tutor + coach conectado ao desempenho do aluno;
+- painel Admin > Qualidade para denúncias e revisão do acervo;
 - PDFs originais dentro da própria plataforma;
-- prévia visual via PDF.js, preservando gráficos, fórmulas e figuras;
-- tela de sincronização para atualizar um banco já existente.
+- contas administrativas ocultas dos rankings.
 
 INSTALAÇÃO NOVA NO XAMPP
 1. Extraia a pasta "plataforma-papiro" em C:\xampp\htdocs\
 2. Inicie Apache e MySQL no XAMPP.
 3. Abra: http://localhost/plataforma-papiro/install.php
-4. Crie o administrador e, se quiser, informe uma chave de IA.
-5. Depois entre normalmente na plataforma.
+4. Faça a instalação.
+5. Entre normalmente na plataforma.
 
-SE VOCÊ JÁ USAVA O PAPIRO
-1. Faça uma cópia da sua pasta antiga por segurança.
-2. Substitua os arquivos pelo conteúdo deste pacote.
-3. Não é necessário apagar seu banco MySQL.
-4. Entre como administrador.
-5. Abra Administração > Sincronizar acervo oficial.
-6. Clique em "Sincronizar agora". Isso não apaga usuários nem progresso.
+SE VOCÊ JÁ USA O PAPIRO 2.4
+1. Faça backup da pasta atual e do banco MySQL.
+2. Preserve seu arquivo includes/config.local.php. Ele pode conter banco e chaves de IA.
+3. Substitua os arquivos da aplicação pelos deste pacote.
+4. NÃO apague o banco MySQL e NÃO rode install.php novamente.
+5. Abra a plataforma. As migrações 2.5 são executadas automaticamente.
+6. Use Ctrl+F5 uma vez caso o navegador insista em CSS/JS antigo.
 
-IA
-- O chat prioriza um modelo rápido e usa fallback quando outro provedor falha.
-- Configure as chaves pelo install.php numa instalação nova.
-- Em instalação existente, você pode manter/copiar seu includes/config.local.php anterior.
+NOVO FLUXO RECOMENDADO
+1. Abra Plano diário e ajuste suas metas semanais.
+2. Faça uma sessão de questões ou Simulado Inteligente.
+3. Classifique os erros no Caderno.
+4. Faça as revisões quando o sistema agendar.
+5. Acompanhe o mapa de domínio na Home.
+6. Use Papiro IA para analisar fraquezas e montar o próximo bloco de estudo.
 
-ACERVO
-O banco possui 3.049 questões objetivas oficiais segundo o índice enviado.
-Quando a extração textual de um PDF escaneado não é confiável, o registro é tratado
-como "questão oficial visual": a página original continua visível, mas a plataforma
-não inventa gabarito ou alternativas. Esses registros podem ser estudados pela prévia
-e enviados como contexto ao Papiro IA.
+CONTAS ADMINISTRATIVAS
+Consulte CONTAS-ADM.txt e altere as senhas no primeiro uso. As contas internas não aparecem no ranking.
 
+GIT / GITHUB
+O arquivo .gitignore já protege includes/config.local.php. Não remova essa regra e nunca envie chaves de IA para o repositório.
 
-ATUALIZAÇÃO 2.2
-- Recuperação de senha por link local removida.
-- 3 contas ADM iniciais: consulte CONTAS-ADM.txt.
-- Página Questões sincroniza o acervo oficial automaticamente se ele ainda não estiver carregado.
-- Os prints das questões são renderizados diretamente do PDF original dentro de cada card.
+Veja ALTERACOES-2.5.txt para o resumo completo.

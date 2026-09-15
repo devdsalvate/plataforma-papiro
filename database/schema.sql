@@ -20,6 +20,11 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 
+CREATE TABLE IF NOT EXISTS app_meta (
+  meta_key VARCHAR(80) PRIMARY KEY,
+  meta_value VARCHAR(255) NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS questoes (
   id INT AUTO_INCREMENT PRIMARY KEY,
   slug VARCHAR(40) NOT NULL UNIQUE,
@@ -38,8 +43,12 @@ CREATE TABLE IF NOT EXISTS questoes (
   alt_d TEXT NOT NULL,
   alt_e TEXT NOT NULL,
   gabarito TINYINT NOT NULL DEFAULT -1,
+  gabarito_fonte VARCHAR(24) NOT NULL DEFAULT '',
+  gabarito_confianca DECIMAL(5,4) NOT NULL DEFAULT 0,
+  gabarito_validado_em DATETIME NULL,
   resolucao TEXT NOT NULL,
   origem VARCHAR(120) NOT NULL DEFAULT '',
+  exibir_preview TINYINT NOT NULL DEFAULT 0,
   ativo TINYINT NOT NULL DEFAULT 1,
   created_by INT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -94,7 +103,9 @@ CREATE TABLE IF NOT EXISTS respostas (
   questao_id INT NOT NULL,
   alternativa TINYINT NOT NULL,
   correta TINYINT NOT NULL DEFAULT 0,
+  avaliavel TINYINT NOT NULL DEFAULT 1,
   tempo_seg INT NOT NULL DEFAULT 0,
+  confianca VARCHAR(12) NOT NULL DEFAULT '',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -111,6 +122,10 @@ CREATE TABLE IF NOT EXISTS caderno_erros (
   motivo VARCHAR(60) NOT NULL DEFAULT 'Errou a questão',
   anotacao TEXT NULL,
   revisada TINYINT NOT NULL DEFAULT 0,
+  erro_tipo VARCHAR(24) NOT NULL DEFAULT '',
+  proxima_revisao DATE NULL,
+  revisoes INT NOT NULL DEFAULT 0,
+  ultima_revisao DATETIME NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (user_id, questao_id)
 );
@@ -202,3 +217,71 @@ CREATE TABLE IF NOT EXISTS ia_perguntas (
   resposta TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+
+-- ============================================================
+-- PAPIRO 2.5 — planejamento, revisão espaçada e simulados
+-- ============================================================
+
+
+CREATE TABLE IF NOT EXISTS metas_usuario (
+  user_id INT PRIMARY KEY,
+  horas_semana DECIMAL(5,1) NOT NULL DEFAULT 10,
+  questoes_semana INT NOT NULL DEFAULT 150,
+  simulados_semana INT NOT NULL DEFAULT 1,
+  updated_at DATETIME NULL
+);
+
+CREATE TABLE IF NOT EXISTS plano_diario (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  dia DATE NOT NULL,
+  tipo VARCHAR(24) NOT NULL DEFAULT 'estudo',
+  titulo VARCHAR(180) NOT NULL,
+  descricao TEXT NOT NULL,
+  link VARCHAR(255) NOT NULL DEFAULT '',
+  ordem INT NOT NULL DEFAULT 0,
+  concluido TINYINT NOT NULL DEFAULT 0,
+  created_at DATETIME NULL,
+  UNIQUE KEY uq_plano_user_dia_ordem (user_id,dia,ordem)
+);
+
+CREATE TABLE IF NOT EXISTS simulados_execucoes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  modo VARCHAR(24) NOT NULL DEFAULT 'personalizado',
+  concurso VARCHAR(20) NOT NULL DEFAULT '',
+  materia VARCHAR(50) NOT NULL DEFAULT '',
+  qtd INT NOT NULL DEFAULT 0,
+  ids_json LONGTEXT NOT NULL,
+  config_json TEXT NOT NULL,
+  inicio DATETIME NOT NULL,
+  fim DATETIME NULL,
+  respondidas INT NOT NULL DEFAULT 0,
+  avaliadas INT NOT NULL DEFAULT 0,
+  acertos INT NOT NULL DEFAULT 0,
+  INDEX idx_sim_user_inicio (user_id,inicio)
+);
+
+CREATE TABLE IF NOT EXISTS simulado_respostas (
+  execucao_id INT NOT NULL,
+  questao_id INT NOT NULL,
+  alternativa TINYINT NOT NULL,
+  correta TINYINT NOT NULL DEFAULT 0,
+  avaliavel TINYINT NOT NULL DEFAULT 1,
+  tempo_seg INT NOT NULL DEFAULT 0,
+  created_at DATETIME NULL,
+  PRIMARY KEY (execucao_id,questao_id)
+);
+
+CREATE TABLE IF NOT EXISTS questao_denuncias (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  questao_id INT NOT NULL,
+  tipo VARCHAR(32) NOT NULL DEFAULT 'outro',
+  detalhe TEXT NOT NULL,
+  status VARCHAR(16) NOT NULL DEFAULT 'aberta',
+  created_at DATETIME NULL,
+  INDEX idx_denuncias_status (status,created_at)
+);
+-- PAPIRO 2.5

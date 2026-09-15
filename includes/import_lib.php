@@ -11,11 +11,10 @@ require_once __DIR__ . '/pdf_media.php';
 
 /* Compat: se o config.php for antigo (sem as chaves novas), define vazias p/ não quebrar.
    Sem chave, o provedor é pulado sozinho — com só a Groq, funciona igual a antes. */
-foreach (['GEMINI_API_KEY' => '', 'GEMINI_MODEL' => 'gemini-2.5-flash', 'MISTRAL_API_KEY' => '', 'MISTRAL_MODEL' => 'mistral-medium-latest'] as $k => $v) {
+foreach (['GEMINI_API_KEY' => '', 'GEMINI_MODEL' => 'gemini-2.5-flash'] as $k => $v) {
     if (!defined($k)) define($k, $v);
 }
 if (!defined('GEMINI_FALLBACKS')) define('GEMINI_FALLBACKS', ['gemini-2.5-flash', 'gemini-2.0-flash']);
-if (!defined('MISTRAL_FALLBACKS')) define('MISTRAL_FALLBACKS', ['mistral-medium-latest', 'mistral-small-latest']);
 
 /** Migração leve (cria tabelas/colunas se não existirem). */
 function import_migrate(): void {
@@ -215,9 +214,6 @@ function llm_post(array $body, string $model): array {
     if (str_starts_with($model, 'gemini')) {
         $url = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
         $key = GEMINI_API_KEY;
-    } elseif (str_starts_with($model, 'mistral')) {
-        $url = 'https://api.mistral.ai/v1/chat/completions';
-        $key = MISTRAL_API_KEY;
     } else {
         $url = 'https://api.groq.com/openai/v1/chat/completions';
         $key = GROQ_API_KEY;
@@ -301,7 +297,6 @@ function groq_post(array $body): array {
 /** Tokens/minuto (free tier) por modelo — p/ dosar as chamadas e não tomar 429. */
 function groq_tpm(string $model): int {
     if (str_starts_with($model, 'gemini')) return 250000; // Gemini grátis: cota gigante (~250k-1M)
-    if (str_starts_with($model, 'mistral')) return 100000; // Mistral Experiment: ~500k (uso 100k p/ folga)
     if (str_starts_with($model, 'groq/compound')) return 70000;
     if (str_starts_with($model, 'qwen/')) return 6000;
     return 8000; // gpt-oss-120b/20b e demais
@@ -328,7 +323,7 @@ function groq_medidor(string $op, string $model = '', int $tokens = 0): void {
     }
     $limite = (int)(groq_tpm($model) * 0.85);
     $now = microtime(true);
-    $gapMin = str_starts_with($model, 'gemini') ? 4.5 : (str_starts_with($model, 'mistral') ? 1.2 : 2.2); // Gemini ~10-15 RPM; Mistral ~1/s; Groq 30 RPM
+    $gapMin = str_starts_with($model, 'gemini') ? 4.5 : 2.2; // Gemini ~10-15 RPM; Groq 30 RPM
     $gap = $gapMin - ($now - ($last[$m] ?? 0.0));
     if ($gap > 0) {
         usleep((int)($gap * 1000000));
@@ -416,7 +411,6 @@ function groq_json(array $messages, int $maxTokens = 3000): array {
     // ordem: Gemini 1º (cota gigante) → Mistral → Groq; só entra quem tem chave
     $models = [];
     if (GEMINI_API_KEY !== '') foreach (array_merge([GEMINI_MODEL], GEMINI_FALLBACKS) as $mm) $models[] = $mm;
-    if (MISTRAL_API_KEY !== '') foreach (array_merge([MISTRAL_MODEL], MISTRAL_FALLBACKS) as $mm) $models[] = $mm;
     if (GROQ_API_KEY !== '') foreach (array_merge([GROQ_MODEL], GROQ_FALLBACKS) as $mm) $models[] = $mm;
     $models = array_values(array_unique($models));
     if ($models === []) return [null, 'Sem chave de IA (configure GEMINI_API_KEY no install.php ou config.local.php — grátis em aistudio.google.com/apikey).'];
@@ -465,7 +459,7 @@ function groq_json(array $messages, int $maxTokens = 3000): array {
             }
             return [$data, null];
         }
-        $prov = str_starts_with($model, 'gemini') ? 'Gemini' : (str_starts_with($model, 'mistral') ? 'Mistral' : 'Groq');
+        $prov = str_starts_with($model, 'gemini') ? 'Gemini' : 'Groq';
         if (is_array($body) && isset($body[0]['error'])) $body = $body[0]; // Gemini embrulha o erro em [{...}]
         $msg = is_array($body) ? ((string)($body['error']['message'] ?? $body['detail'] ?? $body['message'] ?? ('HTTP ' . $code))) : ('HTTP ' . $code); // Mistral usa {"detail":...}
         $lastErr = $prov . ': ' . $msg;
@@ -720,7 +714,7 @@ function job_api_state(array $job, bool $done, array $res = []): array {
         $m .= '<br>Última leva: +' . count($res['ids'] ?? []) . ' questões';
         $via = llm_ultimo_modelo();
         if ($via !== '') {
-            $rot = str_starts_with($via, 'gemini') ? '⚡Gemini' : (str_starts_with($via, 'mistral') ? ('Mistral ' . (str_contains($via, 'small') ? 'Small' : (str_contains($via, 'large') ? 'Large' : 'Medium'))) : (str_contains($via, '120b') ? 'Groq 120b' : (str_contains($via, '20b') ? 'Groq 20b' : $via)));
+            $rot = str_starts_with($via, 'gemini') ? 'Gemini' : (str_contains($via, '120b') ? 'Groq 120b' : (str_contains($via, '20b') ? 'Groq 20b' : $via));
             $m .= ' <span class="muted">(via ' . e($rot) . ')</span>';
         }
         if (!empty($res['erros'])) $m .= ' · ⚠️ ' . e(implode(' | ', array_slice($res['erros'], 0, 2)));

@@ -39,7 +39,7 @@ function pm_split_sql(string $sql): array {
     return array_values(array_filter(array_map('trim', $parts ?: [])));
 }
 
-$TABLES = ['import_jobs','import_paginas','questao_imagens','importacoes','ia_perguntas','videoaulas','grupo_membros','grupos','guia_artigos','trilha_progresso','trilha_modulos','trilhas','study_sessions','comentarios','caderno_erros','favoritos','respostas','questoes','password_resets','users'];
+$TABLES = ['questao_denuncias','simulado_respostas','simulados_execucoes','plano_diario','metas_usuario','import_jobs','import_paginas','questao_imagens','importacoes','ia_perguntas','videoaulas','grupo_membros','grupos','guia_artigos','trilha_progresso','trilha_modulos','trilhas','study_sessions','comentarios','caderno_erros','favoritos','respostas','questoes','password_resets','app_meta','users'];
 
 // ---------- POST: instalar ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -76,8 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $gem = trim((string)($_POST['gemini_key'] ?? ''));
             if ($gem !== '') $local['GEMINI_API_KEY'] = $gem;
-            $mis = trim((string)($_POST['mistral_key'] ?? ''));
-            if ($mis !== '') $local['MISTRAL_API_KEY'] = $mis;
             $groq = trim((string)($_POST['groq_key'] ?? ''));
             if ($groq !== '') $local['GROQ_API_KEY'] = $groq;
             file_put_contents(__DIR__ . '/includes/config.local.php', "<?php\n// Gerado pelo instalador em " . date('Y-m-d H:i:s') . "\nreturn " . var_export($local, true) . ";\n");
@@ -89,17 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // schema
-            $schema = file_get_contents(__DIR__ . '/database/schema.sql');
-            if ($driver === 'sqlite') {
-                $schema = str_replace('INT AUTO_INCREMENT PRIMARY KEY', 'INTEGER PRIMARY KEY AUTOINCREMENT', $schema);
-            }
+            $schemaFile = $driver === 'sqlite' ? __DIR__ . '/database/schema_sqlite.sql' : __DIR__ . '/database/schema.sql';
+            $schema = file_get_contents($schemaFile);
             foreach (pm_split_sql($schema) as $stmt) $pdo->exec($stmt);
             remove_password_recovery_storage($pdo);
 
             // Conteúdo-base (trilhas/guia) + banco oficial empacotado.
             $seed = require __DIR__ . '/database/seed.php';
             require_once __DIR__ . '/includes/official_bank.php';
-            $bankResult = official_bank_sync($pdo);
+            $bankResult = official_bank_ensure_current($pdo);
             $stT = $pdo->prepare('INSERT INTO trilhas (slug,nome,icone,cor) VALUES (?,?,?,?)');
             $stM = $pdo->prepare('INSERT INTO trilha_modulos (trilha_id,titulo,ordem) VALUES (?,?,?)');
             foreach ($seed['trilhas'] as $t) {
@@ -110,6 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $stG = $pdo->prepare('INSERT INTO guia_artigos (slug,titulo,icone,tempo,texto) VALUES (?,?,?,?,?)');
             foreach ($seed['guia'] as $g) $stG->execute([$g['slug'], $g['titulo'], $g['icone'], $g['tempo'], $g['texto']]);
+            require_once __DIR__ . '/includes/learning_content.php';
+            $learningResult = ensure_learning_content_current($pdo);
             $pdo->prepare('INSERT INTO videoaulas (titulo,url,concurso,materia,descricao) VALUES (?,?,?,?,?)')->execute(['Como começar na EFOMM: plano de 90 dias', 'https://www.youtube.com/', 'EFOMM', 'Geral', 'Visão geral da prova, pesos e cronograma sugerido.']);
             $pdo->prepare('INSERT INTO videoaulas (titulo,url,concurso,materia,descricao) VALUES (?,?,?,?,?)')->execute(['EPCAR Matemática: os 10 temas que mais caem', 'https://www.youtube.com/', 'EPCAR', 'Matemática', 'Análise dos assuntos campeões de cobrança.']);
             $pdo->prepare('INSERT INTO videoaulas (titulo,url,concurso,materia,descricao) VALUES (?,?,?,?,?)')->execute(['Física para EEAR do zero', 'https://www.youtube.com/', 'EEAR', 'Física', 'Cinemática e dinâmica com questões comentadas.']);
@@ -204,8 +202,7 @@ $instalado = is_file($lockFile) && $sucesso === null;
       </div>
       <label>Senha do admin (mín. 6) <input name="admin_senha" type="password" value="admin123" required></label>
       <label>Gemini API Key <span class="muted">(IA principal, grátis — crie em aistudio.google.com/apikey)</span> <input name="gemini_key" placeholder="AIza..."></label>
-      <label>Mistral API Key <span class="muted">(2ª reserva, grátis sem cartão — console.mistral.ai, ative o plano Experiment)</span> <input name="mistral_key" placeholder="..."></label>
-      <label>Groq API Key <span class="muted">(opcional — reserva automática; pode configurar depois)</span> <input name="groq_key" placeholder="gsk_..."></label>
+<label>Groq API Key <span class="muted">(opcional — reserva automática; pode configurar depois)</span> <input name="groq_key" placeholder="gsk_..."></label>
       <button class="btn btn-gold" type="submit">🚀 Instalar agora</button>
     </form>
     <script>

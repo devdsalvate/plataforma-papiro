@@ -9,5 +9,4 @@ return [
   // Configure pelo instalador ou descomente uma das chaves abaixo:
   // 'GROQ_API_KEY' => 'sua-chave',
   // 'GEMINI_API_KEY' => 'sua-chave',
-  // 'MISTRAL_API_KEY' => 'sua-chave',
 ];

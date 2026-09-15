@@ -1,0 +1,30 @@
+PAPIRO MÁXIMO 2.4 — TEXTO PRIMEIRO + CORREÇÃO AUTÔNOMA
+
+1. QUESTÕES EM TEXTO
+- Questões oficiais só ficam ativas quando possuem enunciado textual e pelo menos duas alternativas legíveis.
+- O PDF não substitui mais o enunciado.
+- A imagem aparece apenas como apoio visual quando há figura, gráfico, tabela, mapa, tirinha, diagrama ou elemento equivalente.
+- Questões ainda não transcritas com segurança continuam preservadas no banco, porém inativas até revisão futura.
+- Acervo empacotado: 3.049 registros; 1.952 questões atualmente liberadas com texto/alternativas confiáveis; 1.097 preservadas para revisão/transcrição.
+
+2. GABARITO E AUTONOMIA DA IA
+- Gabarito oficial/manual continua tendo prioridade.
+- Quando uma questão textual não possui gabarito, a Papiro IA tenta resolvê-la automaticamente no momento da resposta.
+- Com dois modelos disponíveis, só aceita se houver consenso e confiança média mínima.
+- Com apenas um julgamento válido, exige confiança muito alta.
+- Questões dependentes de imagem não são corrigidas por chute da IA.
+- O gabarito validado pela IA é salvo para as próximas tentativas.
+- A interface informa quando a correção é oficial/validada ou assistida por IA e mostra a confiança.
+- O administrador pode abrir uma questão e usar “Validar gabarito com IA”.
+- Sincronizar o acervo não apaga mais gabaritos já validados pela IA ou pelo administrador.
+
+3. BANCO
+Novas colunas criadas automaticamente em instalações existentes:
+- questoes.gabarito_fonte
+- questoes.gabarito_confianca
+- questoes.gabarito_validado_em
+
+4. ATUALIZAÇÃO
+- Preserve includes/config.local.php antes de substituir a pasta se ele contém suas chaves/banco.
+- Não é necessário apagar o banco MySQL.
+- Ao abrir Questões, a versão 2.4 sincroniza o acervo e aplica as pequenas migrações automaticamente.

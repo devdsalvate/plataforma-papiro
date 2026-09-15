@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require dirname(__DIR__) . '/includes/bootstrap.php';
 require_once dirname(__DIR__) . '/includes/import_lib.php';
+require_once dirname(__DIR__) . '/includes/ai.php';
 $user = require_admin();
 $pdo = db();
 import_migrate(); // garante tabela importacoes + coluna questoes.origem
@@ -27,8 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check($_POST['csrf'] ?? null))
             flash('error', 'Preencha enunciado, alternativas e resolução.');
         } else {
             if ($id > 0) {
-                $pdo->prepare('UPDATE questoes SET concurso=?,ano=?,materia=?,assunto=?,dificuldade=?,enunciado=?,alt_a=?,alt_b=?,alt_c=?,alt_d=?,alt_e=?,gabarito=?,resolucao=? WHERE id=?')
-                    ->execute([$concurso, $ano, $materia, $assunto, $dif, $enunciado, ...$alts, $gab, $resolucao, $id]);
+                $pdo->prepare("UPDATE questoes SET concurso=?,ano=?,materia=?,assunto=?,dificuldade=?,enunciado=?,alt_a=?,alt_b=?,alt_c=?,alt_d=?,alt_e=?,gabarito=?,gabarito_fonte='admin',gabarito_confianca=1,gabarito_validado_em=?,resolucao=? WHERE id=?")
+                    ->execute([$concurso, $ano, $materia, $assunto, $dif, $enunciado, ...$alts, $gab, now_str(), $resolucao, $id]);
                 flash('success', "Questão #$id atualizada! ✅");
             } else {
                 do {
@@ -36,12 +37,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check($_POST['csrf'] ?? null))
                     $st = $pdo->prepare('SELECT id FROM questoes WHERE slug = ?');
                     $st->execute([$slug]);
                 } while ($st->fetch());
-                $pdo->prepare('INSERT INTO questoes (slug,concurso,ano,materia,assunto,dificuldade,enunciado,alt_a,alt_b,alt_c,alt_d,alt_e,gabarito,resolucao,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-                    ->execute([$slug, $concurso, $ano, $materia, $assunto, $dif, $enunciado, ...$alts, $gab, $resolucao, $user['id']]);
+                $pdo->prepare('INSERT INTO questoes (slug,concurso,ano,materia,assunto,dificuldade,enunciado,alt_a,alt_b,alt_c,alt_d,alt_e,gabarito,gabarito_fonte,gabarito_confianca,gabarito_validado_em,resolucao,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+                    ->execute([$slug, $concurso, $ano, $materia, $assunto, $dif, $enunciado, ...$alts, $gab, 'admin', 1, now_str(), $resolucao, $user['id']]);
                 flash('success', 'Questão criada! ✅');
             }
             redirect('admin/index.php?tab=questoes');
         }
+    } elseif ($form === 'q_ai_validate') {
+        $id = (int)($_POST['id'] ?? 0);
+        $st = $pdo->prepare('SELECT * FROM questoes WHERE id=? LIMIT 1');
+        $st->execute([$id]);
+        $qq = $st->fetch();
+        if (!$qq) {
+            flash('error', 'Questão não encontrada.');
+        } elseif (!ai_has_key()) {
+            flash('error', 'Configure ao menos uma chave de IA no config.local.php.');
+        } else {
+            $vr = ai_grade_question($qq);
+            if (!empty($vr['accepted'])) {
+                $res = trim((string)($vr['explanation'] ?? ''));
+                if ($res === '') $res = (string)($qq['resolucao'] ?? '');
+                $pdo->prepare('UPDATE questoes SET gabarito=?,gabarito_fonte=?,gabarito_confianca=?,gabarito_validado_em=?,resolucao=? WHERE id=?')
+                    ->execute([(int)$vr['answer'], (string)$vr['source'], (float)$vr['confidence'], now_str(), $res, $id]);
+                flash('success', 'IA validou o gabarito como letra ' . LETRAS[(int)$vr['answer']] . ' (' . (int)round((float)$vr['confidence']*100) . '% de confiança).');
+            } else {
+                flash('error', 'A IA não atingiu consenso/confiança suficiente. O gabarito não foi alterado.');
+            }
+        }
+        redirect('admin/index.php?tab=questoes&edit=' . $id);
     } elseif ($form === 'q_del') {
         $id = (int)$_POST['id'];
         $st = $pdo->prepare('SELECT id FROM questao_imagens WHERE questao_id = ?');
@@ -129,13 +152,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check($_POST['csrf'] ?? null))
     } elseif ($form === 't_toggle') {
         $pdo->prepare('UPDATE trilhas SET ativo = 1 - ativo WHERE id = ?')->execute([(int)$_POST['id']]);
         redirect('admin/index.php?tab=trilhas');
+    } elseif ($form === 'denuncia_resolver') {
+        $pdo->prepare('UPDATE questao_denuncias SET status=? WHERE id=?')->execute(['resolvida',(int)($_POST['id']??0)]);
+        flash('success','Relato marcado como resolvido.');
+        redirect('admin/index.php?tab=qualidade');
     }
 }
 
 $title = 'Administração';
 $active = 'admin';
 include dirname(__DIR__) . '/includes/header.php';
-$tabs = ['dash' => '📊 Painel', 'questoes' => '📝 Questões', 'importar' => '📥 Importar PDFs', 'usuarios' => '👥 Usuários', 'comentarios' => '💬 Comentários', 'videos' => '🎥 Videoaulas', 'trilhas' => '🗺️ Trilhas', 'stats' => '📈 Estatísticas'];
+$tabs = ['dash' => 'Painel', 'questoes' => 'Questões', 'qualidade' => 'Qualidade', 'importar' => 'Importar PDFs', 'usuarios' => 'Usuários', 'comentarios' => 'Comentários', 'videos' => 'Videoaulas', 'trilhas' => 'Trilhas', 'stats' => 'Estatísticas'];
 ?>
 <div class="page-head"><div><h1>Administração</h1></div><span class="spacer"></span><a class="btn btn-primary" href="<?= e(url('admin/sincronizar_banco.php')) ?>">Sincronizar acervo oficial</a></div>
 <div class="admin-tabs tabs">
@@ -216,6 +243,13 @@ $tabs = ['dash' => '📊 Painel', 'questoes' => '📝 Questões', 'importar' => 
     <button class="btn btn-gold" type="submit">💾 Salvar</button>
     <a class="btn" href="<?= e(url('admin/index.php?tab=questoes')) ?>">Cancelar</a>
   </form>
+  <?php if ($editQ): ?>
+  <form method="post" style="margin-top:10px" onsubmit="return confirm('Pedir para a IA resolver e validar esta questão? O gabarito só será alterado se houver alta confiança/consenso.')">
+    <?= csrf_field() ?><input type="hidden" name="form" value="q_ai_validate"><input type="hidden" name="id" value="<?= (int)$editQ['id'] ?>">
+    <button class="btn" type="submit">Validar gabarito com IA</button>
+    <?php if (!empty($editQ['gabarito_fonte'])): ?><span class="muted">Atual: <?= e((string)$editQ['gabarito_fonte']) ?><?= (float)($editQ['gabarito_confianca']??0)>0 ? ' · '.(int)round((float)$editQ['gabarito_confianca']*100).'%' : '' ?></span><?php endif; ?>
+  </form>
+  <?php endif; ?>
 </div>
 <?php if ($editQ):
     $stIm = $pdo->prepare('SELECT * FROM questao_imagens WHERE questao_id = ? ORDER BY id');
@@ -384,6 +418,18 @@ $tabs = ['dash' => '📊 Painel', 'questoes' => '📝 Questões', 'importar' => 
     </form>
   </div>
   <?php endforeach; ?>
+
+<?php elseif ($tab === 'qualidade'):
+    $nText=(int)$pdo->query("SELECT COUNT(*) FROM questoes WHERE ativo=1 AND LENGTH(TRIM(enunciado))>=20 AND (LENGTH(TRIM(alt_a))>0 OR LENGTH(TRIM(alt_b))>0)")->fetchColumn();
+    $nVisual=(int)$pdo->query('SELECT COUNT(*) FROM questoes WHERE ativo=1 AND exibir_preview=1')->fetchColumn();
+    $nOfficial=(int)$pdo->query("SELECT COUNT(*) FROM questoes WHERE ativo=1 AND gabarito_fonte='oficial'")->fetchColumn();
+    $nAI=(int)$pdo->query("SELECT COUNT(*) FROM questoes WHERE ativo=1 AND gabarito_fonte LIKE 'ia%'")->fetchColumn();
+    $nPending=(int)$pdo->query("SELECT COUNT(*) FROM questoes WHERE ativo=1 AND (gabarito<0 OR gabarito>4)")->fetchColumn();
+    $reports=$pdo->query("SELECT d.*,u.nome,q.concurso,q.ano,q.materia,q.assunto FROM questao_denuncias d JOIN users u ON u.id=d.user_id JOIN questoes q ON q.id=d.questao_id WHERE d.status='aberta' ORDER BY d.id DESC LIMIT 100")->fetchAll();
+?>
+<div class="dashboard-kpis"><div class="kpi-card"><span>Texto pronto</span><strong><?= number_format($nText,0,',','.') ?></strong></div><div class="kpi-card"><span>Apoio visual</span><strong><?= $nVisual ?></strong></div><div class="kpi-card"><span>Gabarito oficial</span><strong><?= $nOfficial ?></strong></div><div class="kpi-card accent"><span>Relatos abertos</span><strong><?= count($reports) ?></strong></div></div>
+<div class="card"><div class="section-head"><div><span class="eyebrow">QUALIDADE DO BANCO</span><h2>Gabaritos e revisão</h2></div></div><div class="quality-summary"><div><span>Assistidos por IA</span><strong><?= $nAI ?></strong></div><div><span>Sem gabarito validado</span><strong><?= $nPending ?></strong></div><div><span>Questões ativas</span><strong><?= (int)$pdo->query('SELECT COUNT(*) FROM questoes WHERE ativo=1')->fetchColumn() ?></strong></div></div></div>
+<div class="card"><div class="section-head"><div><span class="eyebrow">COMUNIDADE</span><h2>Problemas reportados</h2></div></div><?php if(!$reports):?><p class="muted">Nenhum relato aberto.</p><?php else:?><div class="table-wrap"><table class="table"><tr><th>Questão</th><th>Tipo</th><th>Relato</th><th>Aluno</th><th></th></tr><?php foreach($reports as $r):?><tr><td><a href="<?= e(url('resolver.php?id='.(int)$r['questao_id'])) ?>">#<?= (int)$r['questao_id'] ?> · <?= e($r['concurso']) ?> <?= (int)$r['ano'] ?> · <?= e($r['materia']) ?></a></td><td><?= e($r['tipo']) ?></td><td><?= e($r['detalhe']?:'—') ?></td><td><?= e($r['nome']) ?></td><td><form method="post"><?= csrf_field() ?><input type="hidden" name="form" value="denuncia_resolver"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button class="btn btn-small" type="submit">Resolver</button></form></td></tr><?php endforeach;?></table></div><?php endif;?></div>
 
 <?php elseif ($tab === 'importar'):
     include __DIR__ . '/importar_tab.php';

@@ -1,0 +1,11 @@
+PAPIRO MÁXIMO 2.5.1
+
+- UI/UX revisada com navegação mais enxuta.
+- Sidebar reduzida para: Início, Questões, Simulados, Trilhas, Guia, Ranking e Caderno de erros.
+- Novo logo do Papiro Máximo.
+- Ajustes de overflow e responsividade no dashboard.
+- Tutor IA simplificado e com foco no uso prático.
+- Groq definida como provedora principal da IA; Gemini mantido como fallback.
+- Remoção das referências operacionais ao Mistral.
+- Comentários destacados nas questões para interação entre usuários.
+- Questões com texto-base ausente ou extração incompleta são ocultadas automaticamente.

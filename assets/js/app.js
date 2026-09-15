@@ -3,6 +3,11 @@
   'use strict';
   var PM = window.PM || { base: '', csrf: '', uid: 0 };
   function apiUrl() { return (PM.base || '') + '/api.php'; }
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];
+    });
+  }
 
   function api(action, data) {
     data = data || {};
@@ -67,11 +72,11 @@
         tDisplay.textContent = fmt((Date.now() - t0) / 1000);
         if (btnStart) btnStart.disabled = true;
         if (btnStop) btnStop.disabled = false;
-        if (tStatus) tStatus.textContent = '⏺️ estudando...';
+        if (tStatus) tStatus.textContent = 'Sessão em andamento';
       } else {
         if (btnStart) btnStart.disabled = false;
         if (btnStop) btnStop.disabled = true;
-        if (tStatus) tStatus.textContent = 'Timer parado. Bora manter a ofensiva! 🔥';
+        if (tStatus) tStatus.textContent = 'Cronômetro parado. Inicie quando começar o bloco.';
       }
     }
     if (btnStart) btnStart.addEventListener('click', function () {
@@ -99,51 +104,58 @@
     render();
   }
 
-  /* ---- gráfico do dashboard ---- */
+  /* ---- gráficos do dashboard ---- */
+  function cssVar(name, fallback) {
+    var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+
   var chart = document.getElementById('chartMain');
   if (chart && chart.getContext) {
     var raw = JSON.parse(chart.getAttribute('data-chart') || '{}');
     var labels = Object.keys(raw);
     function draw(days) {
       var ctx = chart.getContext('2d');
-      var W = chart.width = chart.offsetWidth * 2;
-      var H = chart.height = 440;
+      var W = chart.width = Math.max(640, chart.offsetWidth * 2);
+      var H = chart.height = 420;
       ctx.clearRect(0, 0, W, H);
       var slice = labels.slice(-days);
       var maxQ = 1, maxH = 1;
       slice.forEach(function (d) {
-        maxQ = Math.max(maxQ, raw[d].q);
-        maxH = Math.max(maxH, raw[d].s / 3600);
+        maxQ = Math.max(maxQ, Number(raw[d].q || 0));
+        maxH = Math.max(maxH, Number(raw[d].s || 0) / 3600);
       });
-      var padL = 70, padB = 50, padT = 20;
-      var cw = (W - padL - 20) / slice.length;
-      ctx.font = '22px sans-serif';
-      // eixo Y
+      var padL = 62, padB = 48, padT = 20;
+      var cw = Math.max(12, (W - padL - 20) / Math.max(1, slice.length));
+      var muted = cssVar('--muted', '#667085');
+      var line = cssVar('--line', '#e5e7eb');
+      var accent = cssVar('--accent', '#1769aa');
+      var accent2 = cssVar('--accent-2', '#0b3158');
+      ctx.font = '20px system-ui, sans-serif';
       for (var g = 0; g <= 4; g++) {
         var y = padT + (H - padT - padB) * g / 4;
-        ctx.strokeStyle = '#e5ddc9'; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - 10, y); ctx.stroke();
-        ctx.fillStyle = '#6f6a5c'; ctx.textAlign = 'right';
+        ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - 10, y); ctx.stroke();
+        ctx.fillStyle = muted; ctx.textAlign = 'right';
         ctx.fillText(String(Math.round(maxQ * (4 - g) / 4)), padL - 8, y + 7);
       }
-      // barras (questões) + linha (horas)
       var pts = [];
       slice.forEach(function (d, i) {
-        var q = raw[d].q, h = raw[d].s / 3600;
+        var q = Number(raw[d].q || 0), h = Number(raw[d].s || 0) / 3600;
         var bh = (H - padT - padB) * (q / maxQ);
-        var x = padL + i * cw + cw * 0.2, w = cw * 0.6;
-        ctx.fillStyle = '#e3a82b';
+        var x = padL + i * cw + cw * 0.22, w = Math.max(4, cw * 0.56);
+        ctx.fillStyle = accent;
         ctx.fillRect(x, H - padB - bh, w, bh);
         pts.push([x + w / 2, H - padB - (H - padT - padB) * (h / maxH)]);
         if (days <= 7 || i % 5 === 0 || i === slice.length - 1) {
-          ctx.fillStyle = '#6f6a5c'; ctx.textAlign = 'center';
-          ctx.fillText(d.slice(8, 10) + '/' + d.slice(5, 7), x + w / 2, H - 15);
+          ctx.fillStyle = muted; ctx.textAlign = 'center';
+          ctx.fillText(d.slice(8, 10) + '/' + d.slice(5, 7), x + w / 2, H - 14);
         }
       });
-      ctx.strokeStyle = '#0b1b33'; ctx.lineWidth = 4; ctx.beginPath();
-      pts.forEach(function (p, i) { i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); });
+      ctx.strokeStyle = accent2; ctx.lineWidth = 4; ctx.beginPath();
+      pts.forEach(function (point, i) { i ? ctx.lineTo(point[0], point[1]) : ctx.moveTo(point[0], point[1]); });
       ctx.stroke();
-      ctx.fillStyle = '#0b1b33';
-      pts.forEach(function (p) { ctx.beginPath(); ctx.arc(p[0], p[1], 6, 0, 7); ctx.fill(); });
+      ctx.fillStyle = accent2;
+      pts.forEach(function (point) { ctx.beginPath(); ctx.arc(point[0], point[1], 5, 0, Math.PI * 2); ctx.fill(); });
     }
     draw(7);
     document.querySelectorAll('[data-days]').forEach(function (b) {
@@ -155,64 +167,136 @@
     });
   }
 
-  /* ---- resolver questão ---- */
+  var subjectChart = document.getElementById('chartSubjects');
+  if (subjectChart && subjectChart.getContext) {
+    var subjectData = JSON.parse(subjectChart.getAttribute('data-chart') || '[]');
+    var sctx = subjectChart.getContext('2d');
+    var size = 420;
+    subjectChart.width = size;
+    subjectChart.height = size;
+    var totalSubjects = subjectData.reduce(function (acc, item) { return acc + Number(item.n || 0); }, 0);
+    var palette = ['#1769aa','#f97316','#14b8a6','#8b5cf6','#ef4444','#eab308','#64748b','#ec4899','#22c55e'];
+    var startAngle = -Math.PI / 2;
+    var cx = size / 2, cy = size / 2, radius = 162, inner = 102;
+    sctx.clearRect(0,0,size,size);
+    if (totalSubjects <= 0) {
+      sctx.strokeStyle = cssVar('--line','#e5e7eb'); sctx.lineWidth = radius-inner;
+      sctx.beginPath(); sctx.arc(cx,cy,(radius+inner)/2,0,Math.PI*2); sctx.stroke();
+    } else {
+      subjectData.forEach(function (item, i) {
+        var value = Number(item.n || 0);
+        if (value <= 0) return;
+        var angle = Math.PI * 2 * value / totalSubjects;
+        sctx.beginPath(); sctx.arc(cx,cy,radius,startAngle,startAngle+angle); sctx.arc(cx,cy,inner,startAngle+angle,startAngle,true); sctx.closePath();
+        sctx.fillStyle = palette[i % palette.length]; sctx.fill();
+        startAngle += angle;
+      });
+    }
+    sctx.fillStyle = cssVar('--ink','#111827'); sctx.textAlign='center';
+    sctx.font='800 48px system-ui, sans-serif'; sctx.fillText(String(totalSubjects),cx,cy+4);
+    sctx.fillStyle = cssVar('--muted','#667085'); sctx.font='600 20px system-ui, sans-serif'; sctx.fillText('resolvidas',cx,cy+36);
+
+    var legend = document.getElementById('subjectLegend');
+    if (legend && totalSubjects > 0) {
+      legend.innerHTML = subjectData.map(function(item, i){
+        var pct = Math.round(Number(item.n||0)*100/totalSubjects);
+        return '<div class="donut-legend-row"><span class="donut-dot" style="background:'+palette[i%palette.length]+'"></span><span>'+escapeHtml(item.m||'Geral')+'</span><b>'+pct+'%</b><small>'+Number(item.n||0)+' questões</small></div>';
+      }).join('');
+    }
+  }
+
+  /* ---- radar de domínio ---- */
+  var masteryChart=document.getElementById('chartMastery');
+  if(masteryChart && masteryChart.getContext){
+    var md=JSON.parse(masteryChart.getAttribute('data-chart')||'[]');
+    var ctxm=masteryChart.getContext('2d'), size=420;masteryChart.width=size;masteryChart.height=size;
+    var cxm=size/2,cym=size/2,rm=145,n=md.length;
+    function pt(i,val){var a=-Math.PI/2+i*2*Math.PI/n;return[cxm+Math.cos(a)*rm*val,cym+Math.sin(a)*rm*val];}
+    ctxm.clearRect(0,0,size,size);ctxm.font='16px system-ui';ctxm.textAlign='center';ctxm.textBaseline='middle';
+    if(n>=3){
+      for(var ring=1;ring<=4;ring++){ctxm.beginPath();for(var i=0;i<n;i++){var p0=pt(i,ring/4);i?ctxm.lineTo(p0[0],p0[1]):ctxm.moveTo(p0[0],p0[1]);}ctxm.closePath();ctxm.strokeStyle=cssVar('--line','#ddd');ctxm.lineWidth=1;ctxm.stroke();}
+      for(var j=0;j<n;j++){var p1=pt(j,1);ctxm.beginPath();ctxm.moveTo(cxm,cym);ctxm.lineTo(p1[0],p1[1]);ctxm.strokeStyle=cssVar('--line','#ddd');ctxm.stroke();var lp=pt(j,1.18);ctxm.fillStyle=cssVar('--muted','#666');ctxm.fillText(String(md[j].m||'').slice(0,13),lp[0],lp[1]);}
+      ctxm.beginPath();md.forEach(function(item,k){var p2=pt(k,Math.max(.05,Number(item.score||0)/100));k?ctxm.lineTo(p2[0],p2[1]):ctxm.moveTo(p2[0],p2[1]);});ctxm.closePath();ctxm.fillStyle='rgba(23,105,170,.18)';ctxm.fill();ctxm.strokeStyle=cssVar('--accent','#1769aa');ctxm.lineWidth=4;ctxm.stroke();
+      md.forEach(function(item,k){var p3=pt(k,Math.max(.05,Number(item.score||0)/100));ctxm.beginPath();ctxm.arc(p3[0],p3[1],5,0,Math.PI*2);ctxm.fillStyle=cssVar('--accent','#1769aa');ctxm.fill();});
+    }
+  }
+
+  /* ---- resolver questão / modo foco ---- */
   var qBox = document.getElementById('questaoBox');
   if (qBox) {
     var qid = qBox.getAttribute('data-qid');
     var t0q = Date.now();
     var answered = qBox.getAttribute('data-answered') === '1';
-    var sel = null;
+    var sel = null, confidence = '';
+    var qClock = document.getElementById('questionClock');
+    function renderQuestionClock(){
+      if(!qClock || answered) return;
+      var sec=Math.floor((Date.now()-t0q)/1000), m=Math.floor(sec/60), ss=sec%60;
+      qClock.textContent=(m<10?'0':'')+m+':'+(ss<10?'0':'')+ss;
+    }
+    setInterval(renderQuestionClock,1000); renderQuestionClock();
+
+    function selectAlt(value){
+      if(answered) return;
+      var el=qBox.querySelector('.alt[data-alt="'+value+'"]'); if(!el)return;
+      qBox.querySelectorAll('.alt').forEach(function(x){x.classList.remove('selected');});
+      el.classList.add('selected'); sel=String(value);
+      var btn=document.getElementById('btnResponder'); if(btn)btn.disabled=false;
+    }
     qBox.querySelectorAll('.alt').forEach(function (el) {
-      el.addEventListener('click', function () {
-        if (answered) return;
-        qBox.querySelectorAll('.alt').forEach(function (x) { x.classList.remove('selected'); });
-        el.classList.add('selected');
-        sel = el.getAttribute('data-alt');
-        var btn = document.getElementById('btnResponder');
-        if (btn) btn.disabled = false;
+      el.addEventListener('click', function () { selectAlt(el.getAttribute('data-alt')); });
+    });
+    qBox.querySelectorAll('[data-confidence]').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        confidence=btn.getAttribute('data-confidence')||'';
+        qBox.querySelectorAll('[data-confidence]').forEach(function(x){x.classList.toggle('selected',x===btn);});
       });
     });
+
     var btnResp = document.getElementById('btnResponder');
-    if (btnResp) btnResp.addEventListener('click', function () {
-      if (sel === null || answered) return;
-      btnResp.disabled = true;
-      btnResp.innerHTML = '<span class="spin">⏳</span> Corrigindo...';
-      api('responder', { qid: qid, alt: sel, tempo: Math.floor((Date.now() - t0q) / 1000), simulado: qBox.getAttribute('data-simulado') || '' }).then(function (res) {
-        if (!res.ok) { alert(res.error || 'Erro.'); btnResp.disabled = false; btnResp.textContent = 'Responder'; return; }
-        if (res.avaliavel === false) {
-          var fb0 = document.getElementById('feedback');
-          if (fb0) { fb0.className='feedback'; fb0.textContent = res.message || 'Gabarito ainda não validado.'; }
-          btnResp.disabled = false; btnResp.textContent = 'Responder';
-          return;
+    function submitAnswer(){
+      if(!btnResp || sel===null || answered)return;
+      btnResp.disabled=true;btnResp.textContent='Corrigindo...';
+      api('responder',{qid:qid,alt:sel,tempo:Math.floor((Date.now()-t0q)/1000),confianca:confidence,simulado:qBox.getAttribute('data-simulado')||''}).then(function(res){
+        if(!res.ok){alert(res.error||'Erro.');btnResp.disabled=false;btnResp.textContent='Responder';return;}
+        answered=true;
+        var fb=document.getElementById('feedback');
+        if(res.avaliavel===false){
+          qBox.querySelectorAll('.alt').forEach(function(x){if(parseInt(x.getAttribute('data-alt'),10)===parseInt(sel,10))x.classList.add('respondida');});
+          if(fb){fb.className='feedback info';fb.textContent=res.message||'Resposta registrada; gabarito ainda não validado.';}
+        }else{
+          qBox.querySelectorAll('.alt').forEach(function(x){var a=parseInt(x.getAttribute('data-alt'),10);if(a===res.gabarito)x.classList.add('certa');if(a===parseInt(sel,10)&&!res.correta)x.classList.add('errada');});
+          if(fb){
+            fb.className='feedback '+(res.correta?'ok':'no');
+            var sourceLabel='';
+            if(String(res.fonte||'').indexOf('ia')===0){var pct=Math.round(Number(res.confianca||0)*100);sourceLabel=' · correção assistida por IA'+(pct?' ('+pct+'% de confiança)':'');}
+            else if(res.fonte==='oficial')sourceLabel=' · gabarito oficial'; else sourceLabel=' · gabarito validado';
+            fb.textContent=(res.correta?'Correta. ':'Incorreta. ')+'Gabarito: letra '+res.letra+sourceLabel;
+          }
+          var rb=document.getElementById('resolucaoBox');if(rb){rb.style.display='';var body=rb.querySelector('.res-body');if(body)body.innerHTML=res.resolucao_html||escapeHtml(res.resolucao||'');}
+          if(!res.correta){var ec=document.getElementById('errorClassifier');if(ec)ec.style.display='';}
         }
-        answered = true;
-        var fb = document.getElementById('feedback');
-        qBox.querySelectorAll('.alt').forEach(function (x) {
-          var a = parseInt(x.getAttribute('data-alt'), 10);
-          if (a === res.gabarito) x.classList.add('certa');
-          if (a === parseInt(sel, 10) && !res.correta) x.classList.add('errada');
+        btnResp.style.display='none';
+      });
+    }
+    if(btnResp)btnResp.addEventListener('click',submitAnswer);
+    document.addEventListener('keydown',function(ev){
+      if(!qBox || /INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||''))return;
+      var k=String(ev.key||'').toUpperCase(); if(['A','B','C','D','E'].indexOf(k)>=0){selectAlt(['A','B','C','D','E'].indexOf(k));ev.preventDefault();}
+      if(ev.key==='Enter'&&sel!==null&&!answered){submitAnswer();ev.preventDefault();}
+    });
+    qBox.querySelectorAll('[data-error-type]').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        api('caderno_classificar',{qid:qid,tipo:btn.getAttribute('data-error-type')}).then(function(res){
+          if(res.ok){qBox.querySelectorAll('[data-error-type]').forEach(function(x){x.classList.remove('selected');});btn.classList.add('selected');btn.textContent='Classificado';}
         });
-        if (fb) {
-          fb.className = 'feedback ' + (res.correta ? 'ok' : 'no');
-          fb.textContent = res.correta ? '✅ Correta! Gabarito: letra ' + res.letra : '❌ Incorreta. Gabarito: letra ' + res.letra;
-        }
-        var rb = document.getElementById('resolucaoBox');
-        if (rb) { rb.style.display = ''; rb.querySelector('.res-body').innerHTML = res.resolucao; }
-        var nb = document.getElementById('nextBox');
-        if (nb) nb.style.display = '';
-        btnResp.style.display = 'none';
       });
     });
-    // IA explica esta questão
     var btnIa = document.getElementById('btnIaQuestao');
     if (btnIa) btnIa.addEventListener('click', function () {
-      var box = document.getElementById('iaQuestaoBox');
-      btnIa.disabled = true;
-      if (box) { box.style.display = ''; box.innerHTML = '<i>Analisando a questão...</i>'; }
-      api('ia', { questao_id: qid, pergunta: 'Explique esta questão passo a passo.' }).then(function (res) {
-        btnIa.disabled = false;
-        if (box) box.innerHTML = res.ok ? ('<b>Papiro IA</b><br>' + res.resposta) : (res.error || 'Erro.');
-      });
+      var box = document.getElementById('iaQuestaoBox'); btnIa.disabled=true;
+      if(box){box.style.display='';box.innerHTML='<i>Analisando a questão...</i>';}
+      api('ia',{questao_id:qid,pergunta:'Explique esta questão passo a passo e destaque o conceito que eu deveria revisar se errasse.'}).then(function(res){btnIa.disabled=false;if(box)box.innerHTML=res.ok?('<b>Papiro IA</b><br>'+res.resposta):(res.error||'Erro.');});
     });
   }
 
@@ -222,7 +306,7 @@
       api('favorito', { qid: btn.getAttribute('data-fav') }).then(function (res) {
         if (!res.ok) { alert(res.error || 'Erro.'); return; }
         btn.classList.toggle('faved', !!res.fav);
-        btn.innerHTML = res.fav ? '⭐ Favoritada' : '☆ Favoritar';
+        btn.textContent = res.fav ? 'Favoritada' : 'Favoritar';
         if (!res.fav && btn.hasAttribute('data-remove-row')) {
           var row = btn.closest('[data-fav-row]');
           if (row) row.remove();
@@ -260,7 +344,7 @@
     chk.addEventListener('change', function () {
       api('trilha_toggle', { modulo: chk.getAttribute('data-modulo') }).then(function (res) {
         if (!res.ok) { alert(res.error || 'Erro.'); chk.checked = !chk.checked; return; }
-        var row = chk.closest('.modulo');
+        var row = chk.closest('.module-card') || chk.closest('.modulo');
         if (row) row.classList.toggle('done', !!res.done);
         var bar = document.getElementById('trilhaBar');
         var pct = document.getElementById('trilhaPct');
@@ -276,8 +360,8 @@
       var qid2 = btn.getAttribute('data-save-note');
       var ta = document.querySelector('textarea[data-note="' + qid2 + '"]');
       api('caderno_salvar', { qid: qid2, anotacao: ta ? ta.value : '' }).then(function (res) {
-        btn.textContent = res.ok ? '✅ Salvo!' : '⚠️ Erro';
-        setTimeout(function () { btn.textContent = '💾 Salvar anotação'; }, 2000);
+        btn.textContent = res.ok ? 'Salvo' : 'Erro';
+        setTimeout(function () { btn.textContent = 'Salvar anotação'; }, 2000);
       });
     });
   });
@@ -295,6 +379,37 @@
         if (res.ok) { var row = btn.closest('[data-err-row]'); if (row) row.remove(); }
       });
     });
+  });
+
+  /* ---- plano diário ---- */
+  document.querySelectorAll('[data-plan-toggle]').forEach(function(chk){
+    chk.addEventListener('change',function(){
+      var id=chk.getAttribute('data-plan-toggle');
+      api('plano_toggle',{id:id}).then(function(res){
+        if(!res.ok){chk.checked=!chk.checked;alert(res.error||'Erro.');return;}
+        var row=chk.closest('[data-plan-row]');if(row)row.classList.toggle('done',!!res.done);
+        var bar=document.getElementById('planBar');if(bar)bar.style.width=res.pct+'%';
+      });
+    });
+  });
+
+  /* ---- revisão espaçada / classificação do caderno ---- */
+  document.querySelectorAll('[data-error-select]').forEach(function(selEl){
+    selEl.addEventListener('change',function(){api('caderno_classificar',{qid:selEl.getAttribute('data-error-select'),tipo:selEl.value});});
+  });
+  document.querySelectorAll('[data-review-now]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      btn.disabled=true; api('caderno_revisar',{qid:btn.getAttribute('data-review-now')}).then(function(res){
+        btn.disabled=false;if(!res.ok){alert(res.error||'Erro.');return;}
+        btn.textContent=res.finalizada?'Ciclo concluído':'Revisado · próxima '+res.proxima;
+        var row=btn.closest('[data-err-row]');if(row)row.classList.add('reviewed-now');
+      });
+    });
+  });
+
+  /* ---- reportar questão ---- */
+  document.querySelectorAll('[data-report-question]').forEach(function(btn){
+    btn.addEventListener('click',function(ev){ev.preventDefault();var wrap=btn.closest('.report-form');var type=wrap&&wrap.querySelector('[data-report-type]');var detail=wrap&&wrap.querySelector('[data-report-detail]');btn.disabled=true;api('questao_reportar',{qid:btn.getAttribute('data-report-question'),tipo:type?type.value:'outro',detalhe:detail?detail.value:''}).then(function(res){btn.disabled=false;if(res.ok){btn.textContent='Enviado';if(detail)detail.value='';}else alert(res.error||'Erro.');});});
   });
 
   /* ---- chat IA (página ia.php) ---- */

@@ -6,7 +6,7 @@ declare(strict_types=1);
    ============================================================ */
 
 const APP_NAME = 'Papiro Máximo';
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.5.1';
 
 date_default_timezone_set('America/Sao_Paulo');
 
@@ -59,20 +59,14 @@ define('DB_USER', (string)pm_cfg('DB_USER', 'root'));
 define('DB_PASS', (string)pm_cfg('DB_PASS', ''));
 define('DB_SQLITE_PATH', (string)pm_cfg('DB_SQLITE_PATH', APP_ROOT . '/database/papiro.sqlite'));
 
-/* ---------- IA principal: Google Gemini (grátis, sem cartão) ----------
-   Crie a chave em https://aistudio.google.com/apikey (1 min, grátis) e salve em
-   config.local.php: 'GEMINI_API_KEY' => 'AIza...'. Sem chave, usa só a Groq. */
+/* ---------- IA principal: Groq (rápida e já integrada ao projeto) ----------
+   Salve em config.local.php: 'GROQ_API_KEY' => 'gsk_...'. */
+define('GROQ_API_KEY', (string)pm_cfg('GROQ_API_KEY', ''));
+define('GROQ_MODEL', (string)pm_cfg('GROQ_MODEL', 'openai/gpt-oss-120b'));
+const GROQ_FALLBACKS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
+
+/* ---------- IA reserva: Google Gemini ----------
+   Entra apenas quando a Groq estiver indisponível. */
 define('GEMINI_API_KEY', (string)pm_cfg('GEMINI_API_KEY', ''));
 define('GEMINI_MODEL', (string)pm_cfg('GEMINI_MODEL', 'gemini-2.5-flash'));
 const GEMINI_FALLBACKS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
-/* ---------- IA 2: Mistral (grátis, sem cartão — potente) ----------
-   Chave em console.mistral.ai (ative o plano Experiment no billing, sem cartão).
-   Sem chave, pula direto para a Groq. */
-define('MISTRAL_API_KEY', (string)pm_cfg('MISTRAL_API_KEY', ''));
-define('MISTRAL_MODEL', (string)pm_cfg('MISTRAL_MODEL', 'mistral-medium-latest'));
-const MISTRAL_FALLBACKS = ['mistral-medium-latest', 'mistral-small-latest'];
-/* ---------- IA reserva: Groq (grátis) — entra sozinha se a Gemini falhar ---------- */
-define('GROQ_API_KEY', (string)pm_cfg('GROQ_API_KEY', ''));
-define('GROQ_MODEL', (string)pm_cfg('GROQ_MODEL', 'openai/gpt-oss-120b'));
-/* Modelos alternativos: se o principal for descontinuado, tenta estes sozinho */
-const GROQ_FALLBACKS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'];

@@ -1,0 +1,38 @@
+PAPIRO MÁXIMO 2.3 — ALTERAÇÕES
+================================
+
+1. PÁGINA INICIAL
+- Layout mais limpo e orientado a desempenho.
+- Gráfico de evolução de questões + tempo de estudo.
+- Gráfico de rosca com distribuição das questões resolvidas por matéria.
+- Desempenho por matéria e por concurso.
+- Plano de estudo do dia baseado no desempenho do aluno.
+
+2. QUESTÕES
+- Enunciado textual é priorizado.
+- A prévia do PDF funciona como apoio visual/fallback, e não como substituto automático do texto.
+- Extração textual do acervo foi ampliada, inclusive com OCR em páginas escaneadas.
+- Questões com alternativas legíveis podem ser respondidas diretamente.
+- Questões ainda sem gabarito validado aceitam resposta e salvam a alternativa sem contaminar a taxa de acerto.
+- Questões visuais/escaneadas ainda podem ser respondidas pelas alternativas A–E usando o recorte oficial como referência.
+- O acervo permanece com 3.049 questões oficiais; nenhuma questão extra foi adicionada nesta versão.
+
+3. TRILHAS
+- Trilhas por concurso aprofundadas.
+- Cada módulo informa objetivo, conteúdo, prática, meta de questões, tempo sugerido e critério de domínio.
+- Base Forte em Matemática reconstruída para quem possui muitas lacunas, indo de aritmética e frações até álgebra, geometria, funções e trigonometria.
+
+4. GUIA DE ESTUDOS
+- Conteúdo mais detalhado para quem nunca estudou sozinho.
+- Orientações sobre rotina, teoria, questões, revisão, caderno de erros, simulados, edital, Matemática, Física e Química.
+
+5. RANKING
+- Contas internas com papel de administrador não aparecem no ranking geral nem nos rankings de grupo.
+
+6. COMPATIBILIDADE
+- Migrações automáticas adicionam os campos exibir_preview e avaliavel em instalações antigas.
+- Atualização de trilhas preserva o progresso já salvo.
+- CSS e JavaScript usam versão no URL para reduzir problemas de cache do navegador.
+
+OBSERVAÇÃO
+Algumas questões escaneadas ainda dependem do recorte do PDF quando a leitura automática não é confiável. Nesses casos, o sistema preserva a fonte original em vez de inventar texto ou gabarito.
